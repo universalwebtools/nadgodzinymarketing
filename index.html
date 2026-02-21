@@ -404,6 +404,7 @@
       </div>
 
       <button class="btn-primary" id="saveBtn">Zapisz teraz</button>
+      <button id="bulkBtn" type="button">Masowe wpisy</button>
       <button id="adminBtn" type="button">Panel admina</button>
       <button class="btn-danger" id="resetBtn" style="display:none">Reset (ten komputer)</button>
       <button id="adminLogoutBtn" type="button" style="display:none">Wyloguj admina</button>
@@ -517,6 +518,44 @@
 
 
 
+<!-- BULK MODAL -->
+  <div id="bulkModal" class="modal" aria-hidden="true" style="display:none">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="bulkTitle">
+      <div class="modal-head">
+        <h3 id="bulkTitle">Masowe wpisy</h3>
+        <button id="bulkCloseBtn" type="button" aria-label="Zamknij" style="border-radius:12px">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px" id="bulkHint">Kliknij najpierw komórkę w tabeli, żeby wybrać pracownika i miesiąc.</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Od dnia</div>
+            <input id="bulkFrom" class="in" type="number" min="1" max="31" value="1" style="text-align:left;padding-left:10px" />
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Do dnia</div>
+            <input id="bulkTo" class="in" type="number" min="1" max="31" value="1" style="text-align:left;padding-left:10px" />
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Wpis (np. U, L4, O, UT, 2, -5, 0,5)</div>
+          <input id="bulkVal" class="in" type="text" placeholder="U / L4 / 2 / -5" style="text-align:left;padding-left:10px" />
+        </div>
+
+        <div style="font-size:12px;color:var(--muted)">
+          Tip: wpisy są normalizowane automatycznie (np. <b>u</b> → <b>U</b>, <b>0,5</b> → <b>0.5</b>).
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="bulkApplyBtn" type="button" class="btn-primary">Zastosuj</button>
+        <button id="bulkCancelBtn" type="button">Anuluj</button>
+      </div>
+    </div>
+  </div>
+
+
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
@@ -599,6 +638,15 @@
     adminColorL4: document.getElementById('adminColorL4'),
     adminColorUT: document.getElementById('adminColorUT'),
     adminResetColors: document.getElementById('adminResetColors'),
+    bulkBtn: document.getElementById('bulkBtn'),
+    bulkModal: document.getElementById('bulkModal'),
+    bulkCloseBtn: document.getElementById('bulkCloseBtn'),
+    bulkApplyBtn: document.getElementById('bulkApplyBtn'),
+    bulkCancelBtn: document.getElementById('bulkCancelBtn'),
+    bulkFrom: document.getElementById('bulkFrom'),
+    bulkTo: document.getElementById('bulkTo'),
+    bulkVal: document.getElementById('bulkVal'),
+    bulkHint: document.getElementById('bulkHint'),
   };
 
   // ====== UI copy tweaks (online/shared version) ======
@@ -1324,10 +1372,52 @@ function normalizeCellValue(val){
     if(e.key === "Escape" && els.adminModal && els.adminModal.style.display === "flex") closeAdminModal();
   });
 
-  // ENTER / Shift+ENTER navigation for day inputs (robust across re-render)
-  // IMPORTANT: use capture=true and row-scoped navigation to avoid losing focus due to any bubbling handlers
+
+  // ENTER / Shift+ENTER navigation for day inputs
+  // Robust in Chrome even when DOM is re-rendered: we request focus by (emp,month,day) and apply it after any updates.
+  let __focusReq = null;
+  let __focusTries = 0;
+  function requestCellFocus(emp, month, day){
+    __focusReq = { emp, month, day };
+    __focusTries = 0;
+    setTimeout(applyRequestedFocus, 0);
+  }
+  function applyRequestedFocus(){
+    if(!__focusReq) return;
+    const {emp, month, day} = __focusReq;
+    const sel = `input.in[data-emp="${cssEscape(emp)}"][data-month="${month}"][data-day="${day}"]`;
+    const el = document.querySelector(sel);
+    if(el && !el.disabled){
+      try{
+        el.focus({preventScroll:true});
+        el.select();
+        el.scrollIntoView({block:'nearest', inline:'nearest'});
+      }catch(_){}
+      __focusReq = null;
+      return;
+    }
+    // If DOM is being rebuilt, try a few times.
+    __focusTries++;
+    if(__focusTries < 12){
+      setTimeout(applyRequestedFocus, 35);
+    }else{
+      __focusReq = null;
+    }
+  }
+
+  // Track last active cell (used by "Masowe wpisy")
+  let __lastCell = null;
+  document.addEventListener('focusin', (e)=>{
+    const t = e.target;
+    if(t && t.classList && t.classList.contains('in') && t.dataset && t.dataset.emp){
+      __lastCell = { emp: t.dataset.emp, month: Number(t.dataset.month), day: Number(t.dataset.day) };
+    }
+  });
+
   document.addEventListener('keydown', (e)=>{
-    if(e.key !== 'Enter') return;
+    const isEnter = (e.key === 'Enter' || e.code === 'NumpadEnter');
+    if(!isEnter) return;
+
     const t = e.target;
     if(!(t && t.classList && t.classList.contains('in') && t.dataset && t.dataset.emp)) return;
 
@@ -1349,7 +1439,7 @@ function normalizeCellValue(val){
     paintDayInput(t);
     arr[d-1] = v;
 
-    // Update totals for this row
+    // Update totals for this employee in this month (both blocks)
     const totals = calcMonthTotalsForEmp(m, emp);
     const rowSel = `tr[data-emp="${cssEscape(emp)}"][data-month="${m}"]`;
     document.querySelectorAll(rowSel).forEach(row=>{
@@ -1362,31 +1452,117 @@ function normalizeCellValue(val){
     setMonthPreview();
     queueSave(700);
 
-    // Focus move within the SAME row (no attribute escaping issues)
-    const row = t.closest('tr');
-    if(!row) return;
-
+    // Request focus by next/prev day number (works across blocks 1–16 / 17–31 too)
     const dir = e.shiftKey ? -1 : 1;
-    const inputs = Array.from(row.querySelectorAll('input.in'))
-      .filter(el => el && !el.disabled)
-      .sort((a,b)=> Number(a.dataset.day) - Number(b.dataset.day));
-
-    const idx = inputs.indexOf(t);
-    if(idx < 0) return;
-
-    let j = idx + dir;
-    if(j < 0 || j >= inputs.length) return;
-
-    const next = inputs[j];
-    // Defer focus to next tick in case something updates synchronously
-    setTimeout(()=>{
-      try{
-        next.focus({preventScroll:true});
-        next.select();
-        next.scrollIntoView({block:'nearest', inline:'nearest'});
-      }catch(_){}
-    }, 0);
+    const nextDay = d + dir;
+    const dim = daysInMonth(YEAR, m);
+    if(nextDay >= 1 && nextDay <= dim){
+      requestCellFocus(emp, m, nextDay);
+    }
   }, true);
+
+
+
+  // ====== Masowe wpisy (zakres) ======
+  function openBulkModal(){
+    if(!els.bulkModal) return;
+    if(!__lastCell || !__lastCell.emp || !__lastCell.month){
+      showToast("Kliknij najpierw komórkę w tabeli (żeby wybrać pracownika i miesiąc).");
+      return;
+    }
+    const dim = daysInMonth(YEAR, __lastCell.month);
+    const d = Math.min(Math.max(__lastCell.day || 1, 1), dim);
+    if(els.bulkFrom) { els.bulkFrom.max = String(dim); els.bulkFrom.value = String(d); }
+    if(els.bulkTo) { els.bulkTo.max = String(dim); els.bulkTo.value = String(d); }
+    if(els.bulkVal) { els.bulkVal.value = ""; els.bulkVal.focus(); }
+    if(els.bulkHint){
+      els.bulkHint.innerHTML = `Pracownik: <b>${__lastCell.emp}</b> • Miesiąc: <b>${monthNames[__lastCell.month-1]} ${YEAR}</b>`;
+    }
+    els.bulkModal.style.display = "flex";
+    els.bulkModal.setAttribute("aria-hidden","false");
+  }
+  function closeBulkModal(){
+    if(!els.bulkModal) return;
+    els.bulkModal.style.display = "none";
+    els.bulkModal.setAttribute("aria-hidden","true");
+  }
+  function applyBulk(){
+    if(!__lastCell) return;
+    const emp = __lastCell.emp;
+    const m = __lastCell.month;
+    const dim = daysInMonth(YEAR, m);
+
+    let a = parseInt(els.bulkFrom?.value || "1", 10);
+    let b = parseInt(els.bulkTo?.value || "1", 10);
+    a = isFinite(a) ? a : 1;
+    b = isFinite(b) ? b : 1;
+    a = Math.min(Math.max(a,1), dim);
+    b = Math.min(Math.max(b,1), dim);
+    if(a>b){ const t=a; a=b; b=t; }
+
+    const raw = (els.bulkVal?.value || "").trim();
+    if(!raw){
+      showToast("Wpisz wartość (np. U, L4, 2, -5).");
+      return;
+    }
+    const v = normalizeCellValue(raw);
+
+    if(!state.months[m]) state.months[m] = {};
+    if(!state.months[m][emp]) state.months[m][emp] = Array(31).fill("");
+    const arr = state.months[m][emp];
+
+    for(let d=a; d<=b; d++){
+      arr[d-1] = v;
+      const sel = `input.in[data-emp="${cssEscape(emp)}"][data-month="${m}"][data-day="${d}"]`;
+      const el = document.querySelector(sel);
+      if(el){
+        el.value = v;
+        paintDayInput(el);
+      }
+    }
+
+    const totals = calcMonthTotalsForEmp(m, emp);
+    const rowSel = `tr[data-emp="${cssEscape(emp)}"][data-month="${m}"]`;
+    document.querySelectorAll(rowSel).forEach(row=>{
+      const saldoEl = row.querySelector('[data-role="saldo"]');
+      const statusEl = row.querySelector('[data-role="status"]');
+      if (saldoEl) saldoEl.innerHTML = `<span class="saldo ${totals.cls}">${fmt(totals.saldo)}</span>`;
+      if (statusEl) statusEl.innerHTML = `<span class="status ${totals.cls}">${totals.status}</span>`;
+    });
+
+    setMonthPreview();
+    queueSave(400);
+
+    closeBulkModal();
+    const next = Math.min(b+1, dim);
+    requestCellFocus(emp, m, next);
+    showToast(`Wpisano "${v}" dla ${a}–${b}.`);
+  }
+
+  if(els.bulkBtn) els.bulkBtn.addEventListener('click', openBulkModal);
+  if(els.bulkCloseBtn) els.bulkCloseBtn.addEventListener('click', closeBulkModal);
+  if(els.bulkCancelBtn) els.bulkCancelBtn.addEventListener('click', closeBulkModal);
+  if(els.bulkApplyBtn) els.bulkApplyBtn.addEventListener('click', applyBulk);
+  if(els.bulkModal){
+    els.bulkModal.addEventListener('click', (e)=>{
+      if(e.target === els.bulkModal) closeBulkModal();
+    });
+  }
+  if(els.bulkVal){
+    els.bulkVal.addEventListener('keydown', (e)=>{
+      if(e.key === "Enter"){ e.preventDefault(); applyBulk(); }
+      if(e.key === "Escape"){ e.preventDefault(); closeBulkModal(); }
+    });
+  }
+  if(els.bulkFrom){
+    [els.bulkFrom, els.bulkTo].forEach(inp=>{
+      if(!inp) return;
+      inp.addEventListener('keydown', (e)=>{
+        if(e.key === "Escape"){ e.preventDefault(); closeBulkModal(); }
+      });
+    });
+  }
+
 
   // Firebase auth login actions
   if (els.fbLoginBtn) {
@@ -1577,8 +1753,8 @@ function normalizeCellValue(val){
       for(let d=block.start; d<=block.end; d++){
         const th=document.createElement('th');
         th.textContent=d;
-        if (d<=dim && state.settings && state.settings.holidaysEnabled){
-          const hn = holidayName(YEAR,m,d);
+        if (d<=dim){
+          const hn = (state.settings && state.settings.holidaysEnabled) ? holidayName(YEAR,m,d) : "";
           if (hn) { th.classList.add('is-holiday-head'); th.title = hn; }
           else if (isWeekend(YEAR,m,d)) { th.classList.add('is-weekend-head'); }
         }
@@ -1595,8 +1771,8 @@ function normalizeCellValue(val){
       for(let d=block.start; d<=block.end; d++){
         const th=document.createElement('th');
         th.textContent = (d<=dim) ? weekdayPL(YEAR,m,d) : "—";
-        if (d<=dim && state.settings && state.settings.holidaysEnabled){
-          const hn = holidayName(YEAR,m,d);
+        if (d<=dim){
+          const hn = (state.settings && state.settings.holidaysEnabled) ? holidayName(YEAR,m,d) : "";
           if (hn) { th.classList.add('is-holiday-head'); th.title = hn; }
           else if (isWeekend(YEAR,m,d)) { th.classList.add('is-weekend-head'); }
         }
@@ -1692,6 +1868,7 @@ function normalizeCellValue(val){
 
     els.tableWrap.innerHTML="";
     els.tableWrap.appendChild(host);
+    applyRequestedFocus();
   }
 
   function renderSummary(){
