@@ -704,10 +704,24 @@ function normalizeCellValue(val){
     return '';
   }
   function paintDayInput(input){
-    if(!input) return;
-    input.classList.remove('code-u','code-o','code-l4','code-ut');
-    const cls = codeClassForValue(input.value);
-    if(cls) input.classList.add(cls);
+    // reset classes
+    input.classList.remove('code-u','code-o','code-l4','code-ut','num-plus','num-minus');
+
+    const raw = normalizeCellValue(input.value || "");
+    if(!raw){ return; }
+
+    // Absence codes
+    if(raw==="U"){ input.classList.add('code-u'); return; }
+    if(raw==="O"){ input.classList.add('code-o'); return; }
+    if(raw==="L4"){ input.classList.add('code-l4'); return; }
+    if(raw==="UT"){ input.classList.add('code-ut'); return; }
+
+    // Numbers: highlight + / -
+    const num = Number(raw.replace(',', '.'));
+    if(Number.isFinite(num)){
+      if(num > 0) input.classList.add('num-plus');
+      else if(num < 0) input.classList.add('num-minus');
+    }
   }
   function fmt(n){ return (Math.round(n*10)/10).toFixed(1); }
   function statusFromSaldo(s){ return s>0 ? "Nadgodziny" : (s<0 ? "Do odrobienia" : "OK"); }
@@ -769,6 +783,23 @@ function normalizeCellValue(val){
   let currentMonth = 1;
   let currentView = "month";
   let selectedAbsenceEmp = null;
+
+  let pendingFocus = null; // {month, emp, day}
+
+  function focusPendingCell(){
+    if(!pendingFocus) return;
+    const {month, emp, day} = pendingFocus;
+    pendingFocus = null;
+    try{
+      const sel = `input.in[data-month="${CSS.escape(String(month))}"][data-emp="${CSS.escape(String(emp))}"][data-day="${CSS.escape(String(day))}"]`;
+      const el = document.querySelector(sel);
+      if(el){
+        el.focus({preventScroll:false});
+        el.select?.();
+        el.scrollIntoView({block:"nearest", inline:"nearest"});
+      }
+    }catch(e){/* ignore */}
+  }
 
   // ====== Firebase ======
   let app = null;
@@ -910,7 +941,8 @@ function normalizeCellValue(val){
       year: YEAR,
       updatedAt: Date.now(),
       employees: employees.slice(),
-      months: JSON.parse(JSON.stringify(state.months || {}))
+      months: JSON.parse(JSON.stringify(state.months || {})),
+      settings: JSON.parse(JSON.stringify(state.settings || {}))
     };
   }
 
@@ -1667,6 +1699,8 @@ function normalizeCellValue(val){
     if(currentView==="month") renderMonth();
     else if(currentView==="summary_absences") renderAbsenceSummary();
     else renderSummary();
+    // If user used Enter to confirm value, move focus after re-render
+    setTimeout(focusPendingCell, 0);
   }
 
   els.viewSel.addEventListener('change', ()=>{
