@@ -356,6 +356,15 @@
       background: rgba(255,210,120,.10);
       box-shadow: inset 0 0 0 1px rgba(255,210,120,.22), 0 0 0 2px rgba(255,210,120,.06);
     }
+
+
+    /* Year summary alignment */
+    .year-summary-table{table-layout:fixed}
+    .year-summary-table th:nth-child(1), .year-summary-table td:nth-child(1){text-align:left}
+    .year-summary-table th:nth-child(2), .year-summary-table td:nth-child(2),
+    .year-summary-table th:nth-child(3), .year-summary-table td:nth-child(3){text-align:center}
+    .year-summary-table td:nth-child(2) .saldo, .year-summary-table td:nth-child(3) .status{justify-content:center}
+
 </style>
 </head>
 <body>
@@ -431,6 +440,11 @@
           <div style="display:flex;align-items:center;gap:10px;margin:0 0 14px 0">
             <input id="adminHolidaysToggle" type="checkbox" style="width:18px;height:18px;accent-color:#5aa7ff">
             <label for="adminHolidaysToggle" style="cursor:pointer;user-select:none">Podświetl święta i dni wolne (weekendy + ustawowe)</label>
+          </div>
+
+          <div style="display:flex; gap:10px; align-items:center; margin:0 0 18px 0">
+            <button id="adminSaveSettings" class="btn">Zapisz ustawienia</button>
+            <span id="adminSettingsSaved" style="color:var(--muted); font-size:12px"></span>
           </div>
 
           <div class="modal-sub" style="margin:0 0 10px 0">Zarządzanie pracownikami (lista w tym komputerze)</div>
@@ -947,10 +961,12 @@ function normalizeCellValue(val){
     if(els.resetBtn) els.resetBtn.style.display = on ? "" : "none";
     if(els.adminLogoutBtn) els.adminLogoutBtn.style.display = on ? "" : "none";
     if(els.adminTools) els.adminTools.style.display = on ? "" : "none";
+    if(els.adminSaveSettings){ els.adminSaveSettings.disabled = !on; }
     if(els.adminHolidaysToggle){
       els.adminHolidaysToggle.checked = !!(state.settings && state.settings.holidaysEnabled);
       els.adminHolidaysToggle.disabled = !on;
     }
+    if(els.adminSettingsSaved){ els.adminSettingsSaved.textContent = ''; }
   }
   function showAdminMsg(text, ok){
     if(!els.adminMsg) return;
@@ -1133,11 +1149,19 @@ function normalizeCellValue(val){
         state.settings = state.settings || {};
         state.settings.holidaysEnabled = !!els.adminHolidaysToggle.checked;
         state.updatedAt = Date.now();
-        saveRemote(true); // zapis do chmury
-        render(); // przerysuj miesiąc z podświetleniami
-        showToast(state.settings.holidaysEnabled ? "Święta/dni wolne: WŁ." : "Święta/dni wolne: WYŁ.");
+        render(); // podgląd (bez zapisu)
+        if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = "Niezapisane zmiany…";
       });
-    }
+      if(els.adminSaveSettings){
+        els.adminSaveSettings.addEventListener('click', ()=>{
+          if(!adminUnlocked) return;
+          state.updatedAt = Date.now();
+          saveRemote(true);
+          if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = "Zapisano ✓";
+          showToast(state.settings && state.settings.holidaysEnabled ? "Zapisano ustawienia (święta: WŁ.)" : "Zapisano ustawienia (święta: WYŁ.)");
+        });
+      }
+}
   }
 
   if(els.adminPass){
@@ -1465,6 +1489,10 @@ function normalizeCellValue(val){
     mb.appendChild(bh);
 
     const table=document.createElement('table');
+    table.className='year-summary-table';
+    const colgroup=document.createElement('colgroup');
+    colgroup.innerHTML='<col style="width:320px"><col style="width:190px"><col style="width:190px">';
+    table.appendChild(colgroup);
     const thead=document.createElement('thead');
     const tr1=document.createElement('tr');
     ["Imię i nazwisko","Saldo (rok)","Status (rok)"].forEach(t=>{
