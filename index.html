@@ -16,6 +16,16 @@
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
       --good:#1f8f4e; --bad:#c62828; --warn:#b78103;
+
+      /* Domyślne kolory podświetleń dla kodów (można zmienić w panelu admina) */
+      --code-u-bg: rgba(46,139,87,.22);
+      --code-u-border: rgba(46,139,87,.55);
+      --code-o-bg: rgba(129,88,214,.22);
+      --code-o-border: rgba(129,88,214,.55);
+      --code-l4-bg: rgba(214,89,49,.20);
+      --code-l4-border: rgba(214,89,49,.52);
+      --code-ut-bg: rgba(31,143,78,.16);
+      --code-ut-border: rgba(31,143,78,.45);
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -190,10 +200,10 @@
     }
     .in:focus{border-color:rgba(110,168,255,.70); box-shadow:0 0 0 3px rgba(110,168,255,.22)}
     .in[disabled]{opacity:.35}
-    .in.code-u{background:rgba(46,139,87,.22); border-color:rgba(46,139,87,.55); color:#d9ffe8; font-weight:800}
-    .in.code-o{background:rgba(129,88,214,.22); border-color:rgba(129,88,214,.55); color:#efe5ff; font-weight:800}
-    .in.code-l4{background:rgba(214,89,49,.20); border-color:rgba(214,89,49,.52); color:#ffe7dc; font-weight:800}
-    .in.code-ut{background:rgba(31,143,78,.16); border-color:rgba(31,143,78,.45); color:#ddffea; font-weight:800}
+    .in.code-u{background:var(--code-u-bg); border-color:var(--code-u-border); color:#d9ffe8; font-weight:800}
+    .in.code-o{background:var(--code-o-bg); border-color:var(--code-o-border); color:#efe5ff; font-weight:800}
+    .in.code-l4{background:var(--code-l4-bg); border-color:var(--code-l4-border); color:#ffe7dc; font-weight:800}
+    .in.code-ut{background:var(--code-ut-bg); border-color:var(--code-ut-border); color:#ddffea; font-weight:800}
     .in.num-pos{background:rgba(31,143,78,.14); border-color:rgba(31,143,78,.42); color:#ddffea; font-weight:800}
     .in.num-neg{background:rgba(198,40,40,.14); border-color:rgba(198,40,40,.42); color:#ffd8d8; font-weight:800}
 
@@ -445,6 +455,25 @@
             <label for="adminHolidaysToggle" style="cursor:pointer;user-select:none">Podświetl święta i dni wolne (weekendy + ustawowe)</label>
           </div>
 
+          <div class="modal-sub" style="margin:0 0 10px 0">Kolory podświetleń kodów</div>
+          <div class="admin-colors" style="display:grid;grid-template-columns:1fr 120px;gap:10px;align-items:center;margin:0 0 14px 0">
+            <div style="color:var(--muted);font-size:12px">U (urlop)</div>
+            <input id="adminColorU" type="color" style="height:40px;width:120px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06)" />
+
+            <div style="color:var(--muted);font-size:12px">O (odbiór / oddanie)</div>
+            <input id="adminColorO" type="color" style="height:40px;width:120px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06)" />
+
+            <div style="color:var(--muted);font-size:12px">L4 (chorobowe)</div>
+            <input id="adminColorL4" type="color" style="height:40px;width:120px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06)" />
+
+            <div style="color:var(--muted);font-size:12px">UT (urlop / inny kod)</div>
+            <input id="adminColorUT" type="color" style="height:40px;width:120px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06)" />
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;margin:0 0 18px 0">
+            <button id="adminResetColors" type="button" class="btn">Przywróć domyślne</button>
+            <span style="color:var(--muted);font-size:12px">Zmiany są podglądem — zapisz ustawienia, aby je utrwalić.</span>
+          </div>
+
           <div style="display:flex; gap:10px; align-items:center; margin:0 0 18px 0">
             <button id="adminSaveSettings" class="btn">Zapisz ustawienia</button>
             <span id="adminSettingsSaved" style="color:var(--muted); font-size:12px"></span>
@@ -563,6 +592,11 @@
     adminHolidaysToggle: document.getElementById('adminHolidaysToggle'),
     adminSaveSettings: document.getElementById('adminSaveSettings'),
     adminSettingsSaved: document.getElementById('adminSettingsSaved'),
+    adminColorU: document.getElementById('adminColorU'),
+    adminColorO: document.getElementById('adminColorO'),
+    adminColorL4: document.getElementById('adminColorL4'),
+    adminColorUT: document.getElementById('adminColorUT'),
+    adminResetColors: document.getElementById('adminResetColors'),
   };
 
   // ====== UI copy tweaks (online/shared version) ======
@@ -740,9 +774,45 @@ function normalizeCellValue(val){
     }
   }
 
+  function hexToRgb(hex){
+    const m = String(hex || '').trim().match(/^#([0-9a-fA-F]{6})$/);
+    if(!m) return null;
+    const v = m[1];
+    const r = parseInt(v.slice(0,2),16);
+    const g = parseInt(v.slice(2,4),16);
+    const b = parseInt(v.slice(4,6),16);
+    return {r,g,b};
+  }
+  function rgba({r,g,b}, a){
+    return `rgba(${r},${g},${b},${a})`;
+  }
+  function applyCodeColors(){
+    const cc = (state.settings && state.settings.codeColors) ? state.settings.codeColors : null;
+    if(!cc) return;
+    const map = {
+      U: ['--code-u-bg','--code-u-border'],
+      O: ['--code-o-bg','--code-o-border'],
+      L4: ['--code-l4-bg','--code-l4-border'],
+      UT: ['--code-ut-bg','--code-ut-border'],
+    };
+    Object.keys(map).forEach((k)=>{
+      const rgb = hexToRgb(cc[k]);
+      if(!rgb) return;
+      const [bgVar, borderVar] = map[k];
+      // tła i obramowania jak w oryginale
+      const bgA = (k==='UT') ? 0.16 : (k==='L4') ? 0.20 : 0.22;
+      const bdA = (k==='UT') ? 0.45 : (k==='L4') ? 0.52 : 0.55;
+      document.documentElement.style.setProperty(bgVar, rgba(rgb, bgA));
+      document.documentElement.style.setProperty(borderVar, rgba(rgb, bdA));
+    });
+  }
+
   function defaultState(){
     const employees = sortEmployees(defaultEmployees);
-    const s = { year: YEAR, updatedAt: Date.now(), employees, months: {}, settings: { holidaysEnabled: true } };
+    const s = { year: YEAR, updatedAt: Date.now(), employees, months: {}, settings: { 
+      holidaysEnabled: true,
+      codeColors: { U: "#2e8b57", O: "#8158d6", L4: "#d65931", UT: "#1f8f4e" }
+    } };
     for(let m=1;m<=12;m++){
       s.months[m] = {};
       for(const emp of employees){
@@ -765,7 +835,16 @@ function normalizeCellValue(val){
       employees: emps,
       months: {},
       settings: {
-        holidaysEnabled: (obj.settings && typeof obj.settings.holidaysEnabled === "boolean") ? obj.settings.holidaysEnabled : base.settings.holidaysEnabled
+        holidaysEnabled: (obj.settings && typeof obj.settings.holidaysEnabled === "boolean") ? obj.settings.holidaysEnabled : base.settings.holidaysEnabled,
+        codeColors: (() => {
+          const def = (base.settings && base.settings.codeColors) ? base.settings.codeColors : { U: "#2e8b57", O: "#8158d6", L4: "#d65931", UT: "#1f8f4e" };
+          const src = (obj.settings && typeof obj.settings.codeColors === 'object') ? obj.settings.codeColors : {};
+          const pick = (k) => {
+            const v = String(src[k] || '').trim();
+            return /^#([0-9a-fA-F]{6})$/.test(v) ? v : def[k];
+          };
+          return { U: pick('U'), O: pick('O'), L4: pick('L4'), UT: pick('UT') };
+        })()
       }
     };
 
@@ -985,6 +1064,18 @@ function normalizeCellValue(val){
       els.adminHolidaysToggle.disabled = !on;
     }
     if(els.adminSettingsSaved){ els.adminSettingsSaved.textContent = ''; }
+
+    const cc = (state.settings && state.settings.codeColors) ? state.settings.codeColors : defaultState().settings.codeColors;
+    const setPicker = (el, val) => {
+      if(!el) return;
+      el.value = String(val || '#000000');
+      el.disabled = !on;
+    };
+    setPicker(els.adminColorU, cc.U);
+    setPicker(els.adminColorO, cc.O);
+    setPicker(els.adminColorL4, cc.L4);
+    setPicker(els.adminColorUT, cc.UT);
+    if(els.adminResetColors) els.adminResetColors.disabled = !on;
   }
   function showAdminMsg(text, ok){
     if(!els.adminMsg) return;
@@ -1170,6 +1261,42 @@ function normalizeCellValue(val){
         render(); // podgląd (bez zapisu)
         if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = "Niezapisane zmiany…";
       });
+
+      const markDirty = () => {
+        state.updatedAt = Date.now();
+        applyCodeColors();
+        render();
+        if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = "Niezapisane zmiany…";
+      };
+
+      const attachColorPicker = (el, key) => {
+        if(!el) return;
+        el.addEventListener('input', ()=>{
+          if(!isAdmin()) return;
+          state.settings = state.settings || {};
+          state.settings.codeColors = state.settings.codeColors || defaultState().settings.codeColors;
+          const v = String(el.value || '').trim();
+          if(/^#([0-9a-fA-F]{6})$/.test(v)){
+            state.settings.codeColors[key] = v.toLowerCase();
+            markDirty();
+          }
+        });
+      };
+      attachColorPicker(els.adminColorU, 'U');
+      attachColorPicker(els.adminColorO, 'O');
+      attachColorPicker(els.adminColorL4, 'L4');
+      attachColorPicker(els.adminColorUT, 'UT');
+
+      if(els.adminResetColors){
+        els.adminResetColors.addEventListener('click', ()=>{
+          if(!isAdmin()) return;
+          const def = defaultState().settings.codeColors;
+          state.settings = state.settings || {};
+          state.settings.codeColors = { U: def.U, O: def.O, L4: def.L4, UT: def.UT };
+          refreshAdminUI();
+          markDirty();
+        });
+      }
       if(els.adminSaveSettings){
         els.adminSaveSettings.addEventListener('click', ()=>{
           if(!isAdmin()) return;
@@ -1463,23 +1590,35 @@ function normalizeCellValue(val){
           input.addEventListener('keydown', (e)=>{
             if(e.key === 'Enter'){
               e.preventDefault();
-              // trigger normalization + save from blur, then jump to next day
-              input.blur();
-              setTimeout(()=>{
-                const td = input.closest('td');
-                const tr = input.closest('tr');
-                if(!td || !tr) return;
-                let next = td.nextElementSibling;
-                while(next){
-                  const ni = next.querySelector && next.querySelector('input.in');
-                  if(ni && !ni.disabled){
-                    ni.focus();
-                    ni.select();
-                    return;
-                  }
-                  next = next.nextElementSibling;
+              // Zatwierdź jak przy blur + przejdź do następnego dnia w tym samym wierszu
+              const v = normalizeCellValue(input.value);
+              input.value = v;
+              paintDayInput(input);
+              arr[d-1] = v;
+
+              const t = calcMonthTotalsForEmp(m, emp);
+              document.querySelectorAll(`tr[data-emp="${cssEscape(emp)}"][data-month="${m}"]`).forEach(row=>{
+                row.querySelector('[data-role="saldo"]').innerHTML = `<span class="saldo ${t.cls}">${fmt(t.saldo)}</span>`;
+                row.querySelector('[data-role="status"]').innerHTML = `<span class="status ${t.cls}">${t.status}</span>`;
+              });
+
+              buildMonths();
+              setMonthPreview();
+              queueSave(700);
+
+              const td = input.closest('td');
+              const tr = input.closest('tr');
+              if(!td || !tr) return;
+              let next = td.nextElementSibling;
+              while(next){
+                const ni = next.querySelector && next.querySelector('input.in');
+                if(ni && !ni.disabled){
+                  ni.focus();
+                  ni.select();
+                  return;
                 }
-              }, 0);
+                next = next.nextElementSibling;
+              }
             }
           });
 
@@ -1704,6 +1843,7 @@ function normalizeCellValue(val){
   }
 
   function render(){
+    applyCodeColors();
     buildMonths();
     if(currentView==="month") renderMonth();
     else if(currentView==="summary_absences") renderAbsenceSummary();
