@@ -365,6 +365,18 @@
     .year-summary-table th:nth-child(3), .year-summary-table td:nth-child(3){text-align:center}
     .year-summary-table td:nth-child(2) .saldo, .year-summary-table td:nth-child(3) .status{justify-content:center}
 
+
+  /* num +/- highlights */
+  .dayInput.num-plus{
+    background: rgba(34, 197, 94, 0.16) !important;
+    border-color: rgba(34, 197, 94, 0.45) !important;
+    color: #d6ffe6 !important;
+  }
+  .dayInput.num-minus{
+    background: rgba(239, 68, 68, 0.16) !important;
+    border-color: rgba(239, 68, 68, 0.45) !important;
+    color: #ffe0e0 !important;
+  }
 </style>
 </head>
 <body>
@@ -723,6 +735,20 @@ function normalizeCellValue(val){
       else if(num < 0) input.classList.add('num-minus');
     }
   }
+
+function focusNextDayInput(current){
+  try{
+    const emp = current.dataset.emp;
+    const day = parseInt(current.dataset.day||"0",10);
+    if(!emp || !day) return;
+    const next = document.querySelector(`input.dayInput[data-emp="${emp}"][data-day="${day+1}"]`);
+    if(next){
+      next.focus({preventScroll:false});
+      try{ next.select(); }catch(_){}
+    }
+  }catch(e){ console.warn(e); }
+}
+
   function fmt(n){ return (Math.round(n*10)/10).toFixed(1); }
   function statusFromSaldo(s){ return s>0 ? "Nadgodziny" : (s<0 ? "Do odrobienia" : "OK"); }
   function clsFromStatus(st){ return st==="Nadgodziny" ? "good" : (st==="Do odrobienia" ? "bad" : "warn"); }
@@ -946,34 +972,56 @@ function normalizeCellValue(val){
     };
   }
 
-  function saveRemote(showAlert=false){
-    if (!dbRef || !currentUser) {
-      showAuthModal();
-      showAuthMsg('Najpierw zaloguj się do Firebase.', false);
-      return Promise.reject(new Error('Not authenticated'));
-    }
-    const payload = cloneForSave();
-    state.updatedAt = payload.updatedAt;
-    state.employees = employees.slice();
+  function saveRemoteData(showAlert=true){
+  if(!dbRef){ showToast("Brak połączenia z bazą (Firebase)."); return Promise.resolve(false); }
+  const payload = {
+    updatedAt: Date.now(),
+    employees: Array.isArray(state.employees) ? state.employees : [],
+    months: state.months || {}
+  };
+  cloudStatus("zapisywanie…");
+  return dbRef.update(payload).then(()=>{
+    cloudStatus("zapisano");
+    if(showAlert) showToast("Zapisano w chmurze.");
+    return true;
+  }).catch((e)=>{
+    console.error(e);
+    cloudStatus("błąd");
+    showToast("Błąd zapisu do chmury.");
+    return false;
+  });
+}
 
-    showToast('zapis…', true);
-    return dbRef.set(payload)
-      .then(() => {
-        if (showAlert) alert('Zapisano do chmury ✅');
-        showToast('zapisano', true);
-      })
-      .catch((err) => {
-        console.error(err);
-        showToast('błąd zapisu', false);
-        alert('Błąd zapisu do Firebase: ' + (err.message || err));
-        throw err;
-      });
-  }
+function saveRemoteSettings(showAlert=true){
+  if(!dbRef){ showToast("Brak połączenia z bazą (Firebase)."); return Promise.resolve(false); }
+  const payload = {
+    holidaysEnabled: !!(state.settings && state.settings.holidaysEnabled),
+    updatedAt: Date.now()
+  };
+  cloudStatus("zapisywanie…");
+  return dbRef.child("settings").update(payload).then(()=>{
+    cloudStatus("zapisano");
+    if(showAlert) showToast("Zapisano ustawienia (admin).");
+    // przerysuj nagłówki (święta/kolory)
+    renderCurrentView();
+    return true;
+  }).catch((e)=>{
+    console.error(e);
+    cloudStatus("błąd");
+    showToast("Błąd zapisu ustawień.");
+    return false;
+  });
+}
+
+// zgodność wsteczna
+function saveRemote(showAlert=true){
+  return saveRemoteData(showAlert);
+}
 
   function queueSave(delay=700){
     if (!remoteReady || !currentUser) return;
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => { saveRemote(false).catch(()=>{}); }, delay);
+    saveTimer = setTimeout(() => { saveRemoteData(false).catch(()=>{}); }, delay);
   }
 
   // ====== Admin panel (local password, shared data) ======
@@ -1073,7 +1121,7 @@ function normalizeCellValue(val){
         render();
         renderAdminEmployees();
         showAdminMsg("Zmieniono nazwę i przeniesiono dane ✅", true);
-        await saveRemote(false).catch(()=>{});
+        await saveRemoteData(false).catch(()=>{});
       });
 
       delBtn.addEventListener('click', async ()=>{
@@ -1107,7 +1155,7 @@ function normalizeCellValue(val){
         render();
         renderAdminEmployees();
         showAdminMsg(removeData ? "Usunięto osobę i jej dane ✅" : "Usunięto osobę z listy ✅", true);
-        await saveRemote(false).catch(()=>{});
+        await saveRemoteData(false).catch(()=>{});
       });
 
       row.appendChild(inp);
@@ -1131,7 +1179,7 @@ function normalizeCellValue(val){
         employees = state.employees.slice();
         render();
         try {
-          await saveRemote(false);
+          await saveRemoteData(false);
           showAdminMsg("Wyczyszczono dane w chmurze ✅", true);
         } catch(e) {
           showAdminMsg("Błąd resetu w chmurze.", false);
@@ -1158,7 +1206,7 @@ function normalizeCellValue(val){
       els.adminEmpAdd.value = "";
       renderAdminEmployees();
       showAdminMsg("Dodano pracownika ✅", true);
-      await saveRemote(false).catch(()=>{});
+      await saveRemoteData(false).catch(()=>{});
     });
   }
 
@@ -1188,7 +1236,7 @@ function normalizeCellValue(val){
         els.adminSaveSettings.addEventListener('click', ()=>{
           if(!adminUnlocked) return;
           state.updatedAt = Date.now();
-          saveRemote(true);
+          saveRemoteData(true);
           if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = "Zapisano ✓";
           showToast(state.settings && state.settings.holidaysEnabled ? "Zapisano ustawienia (święta: WŁ.)" : "Zapisano ustawienia (święta: WYŁ.)");
         });
@@ -1453,6 +1501,9 @@ function normalizeCellValue(val){
           input.autocomplete="off";
           input.spellcheck=false;
           input.maxLength = 6;
+          input.dataset.emp = emp.id;
+          input.dataset.day = String(d);
+          input.dataset.month = String(monthIdx+1);
           if (d<=dim && state.settings && state.settings.holidaysEnabled){
             const hn = holidayName(YEAR,m,d);
             if (hn) input.title = hn;
@@ -1481,10 +1532,20 @@ function normalizeCellValue(val){
             arr[d-1] = v;
             buildMonths();
             setMonthPreview();
-            saveRemote(false).catch(()=>{});
+            saveRemoteData(false).catch(()=>{});
             if (pendingRemote && !isEditingCell()) {
               const pr = pendingRemote; pendingRemote = null;
               applyRemoteData(pr, true);
+            }
+          });
+
+          input.addEventListener('keydown', (e)=>{
+            if(e.key === 'Enter'){
+              e.preventDefault();
+              // wymuś zapis przez blur
+              input.blur();
+              // przejdź do kolejnego dnia w tym samym wierszu
+              focusNextDayInput(input);
             }
           });
 
@@ -1708,7 +1769,7 @@ function normalizeCellValue(val){
     render();
   });
 
-  els.saveBtn.addEventListener('click', ()=>{ saveRemote(true).catch(()=>{}); });
+  els.saveBtn.addEventListener('click', ()=>{ saveRemoteData(true).catch(()=>{}); });
 
   els.resetBtn.addEventListener('click', async ()=>{
     if(!isAdmin()){
@@ -1721,7 +1782,7 @@ function normalizeCellValue(val){
       employees = state.employees.slice();
       render();
       try {
-        await saveRemote(false);
+        await saveRemoteData(false);
         alert("Wyczyszczono dane w chmurze ✅");
       } catch(e) {}
     }
