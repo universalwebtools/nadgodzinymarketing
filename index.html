@@ -203,6 +203,34 @@
     .saldo.good{background:rgba(31,143,78,.22); border-color:rgba(31,143,78,.40)}
     .saldo.bad{background:rgba(198,40,40,.22); border-color:rgba(198,40,40,.40)}
     .saldo.warn{background:rgba(183,129,3,.22); border-color:rgba(183,129,3,.40)}
+
+    .absence-summary-table col.c-name{width:38%}
+    .absence-summary-table col.c-code{width:15.5%}
+    .absence-summary-table thead th,
+    .absence-summary-table tbody td{text-align:center}
+    .absence-summary-table thead th:first-child,
+    .absence-summary-table tbody td.name{text-align:left}
+    .absence-summary-table tbody tr.active-emp-row td{background:rgba(110,168,255,.08)}
+    .emp-toggle{
+      appearance:none; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03);
+      color:var(--text); border-radius:10px; padding:6px 10px; font:inherit; font-weight:800;
+      cursor:pointer; width:100%; text-align:left;
+    }
+    .emp-toggle:hover{border-color:rgba(110,168,255,.45); background:rgba(110,168,255,.08)}
+    .emp-toggle.active{border-color:rgba(110,168,255,.65); box-shadow:0 0 0 2px rgba(110,168,255,.15) inset; background:rgba(110,168,255,.12)}
+    .absence-list-table col.c-date{width:118px}
+    .absence-list-table col.c-day{width:70px}
+    .absence-list-table col.c-name{width:220px}
+    .absence-list-table col.c-code{width:90px}
+    .absence-list-table th,.absence-list-table td{text-align:left}
+    .absence-list-table td.sum,.absence-list-table th.sumc{text-align:center}
+    .absence-empty{padding:16px 14px; color:var(--muted); font-size:13px}
+    @media (max-width:1100px){
+      .absence-summary-table col.c-name{width:46%}
+      .absence-summary-table col.c-code{width:13.5%}
+      .absence-list-table col.c-name{width:170px}
+      .absence-list-table col.c-date{width:95px}
+    }
     .footer{margin-top:10px; padding:0 14px 14px; font-size:12px;color:var(--muted); display:flex; gap:10px; align-items:center; justify-content:space-between}
     @media (max-width: 1100px){
       header{position:relative; top:auto}
@@ -626,6 +654,7 @@
   let employees = state.employees.slice();
   let currentMonth = 1;
   let currentView = "month";
+  let selectedAbsenceEmp = null;
 
   // ====== Firebase ======
   let app = null;
@@ -1334,19 +1363,29 @@
     setMonthPreview();
 
     const host = document.createElement('div');
+    const allEntries = collectAbsenceEntries();
 
     const mb1 = document.createElement('div');
     mb1.className="monthblock";
     const bh1 = document.createElement('div');
     bh1.className="blockhead";
-    bh1.innerHTML = `<div><b>Podsumowanie urlopów / nieobecności</b> • tylko odczyt</div><div>Kody: U, O, L4, UT</div>`;
+    bh1.innerHTML = `<div><b>Podsumowanie urlopów / nieobecności</b> • tylko odczyt • kliknij pracownika, aby rozwinąć listę terminów</div><div>Kody: U, O, L4, UT</div>`;
     mb1.appendChild(bh1);
 
     const table1=document.createElement('table');
+    table1.className = 'absence-summary-table';
+    const cg1=document.createElement('colgroup');
+    const c1n=document.createElement('col'); c1n.className='c-name'; cg1.appendChild(c1n);
+    for(let i=0;i<4;i++){ const c=document.createElement('col'); c.className='c-code'; cg1.appendChild(c); }
+    table1.appendChild(cg1);
+
     const thead1=document.createElement('thead');
     const trA=document.createElement('tr');
-    ["Imię i nazwisko","U","O","L4","UT","Razem dni"].forEach(t=>{
-      const th=document.createElement('th'); th.textContent=t; trA.appendChild(th);
+    ["Imię i nazwisko","U","O","L4","UT"].forEach((t,idx)=>{
+      const th=document.createElement('th');
+      th.textContent=t;
+      if(idx>0) th.className='sumc';
+      trA.appendChild(th);
     });
     thead1.appendChild(trA);
     table1.appendChild(thead1);
@@ -1355,18 +1394,30 @@
     for(const emp of employees){
       const c = absenceCountsForEmp(emp);
       const tr=document.createElement('tr');
+      if(selectedAbsenceEmp===emp) tr.classList.add('active-emp-row');
 
-      const tdN=document.createElement('td'); tdN.className="name"; tdN.innerHTML=`<b>${emp}</b>`; tr.appendChild(tdN);
+      const tdN=document.createElement('td');
+      tdN.className="name";
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='emp-toggle' + (selectedAbsenceEmp===emp ? ' active' : '');
+      btn.textContent=emp;
+      btn.title='Pokaż / ukryj listę terminów dla pracownika';
+      btn.addEventListener('click', ()=>{
+        selectedAbsenceEmp = (selectedAbsenceEmp===emp) ? null : emp;
+        render();
+      });
+      tdN.appendChild(btn);
+      tr.appendChild(tdN);
+
       ["U","O","L4","UT"].forEach(code=>{
         const td=document.createElement('td');
         td.className="sum";
-        td.innerHTML = `<span class="saldo ${c[code] ? 'good' : 'warn'}">${c[code] || 0}</span>`;
+        const val = c[code] || 0;
+        const cls = val ? (code==='L4' ? 'bad' : 'good') : 'warn';
+        td.innerHTML = `<span class="saldo ${cls}">${val}</span>`;
         tr.appendChild(td);
       });
-      const tdT=document.createElement('td');
-      tdT.className="sum";
-      tdT.innerHTML = `<span class="saldo ${c.total ? 'good' : 'warn'}">${c.total || 0}</span>`;
-      tr.appendChild(tdT);
 
       tbody1.appendChild(tr);
     }
@@ -1374,35 +1425,58 @@
     mb1.appendChild(table1);
     host.appendChild(mb1);
 
-    const entries = collectAbsenceEntries();
     const mb2 = document.createElement('div');
     mb2.className="monthblock";
     mb2.style.marginTop = "12px";
 
+    const filteredEntries = selectedAbsenceEmp ? allEntries.filter(e=>e.emp===selectedAbsenceEmp) : [];
     const bh2 = document.createElement('div');
     bh2.className="blockhead";
-    bh2.innerHTML = `<div><b>Lista terminów</b> • wszystkie miesiące</div><div>${entries.length} wpisów</div>`;
+    if(selectedAbsenceEmp){
+      bh2.innerHTML = `<div><b>Lista terminów</b> • ${selectedAbsenceEmp}</div><div>${filteredEntries.length} wpisów</div>`;
+    } else {
+      bh2.innerHTML = `<div><b>Lista terminów</b> • kliknij imię i nazwisko powyżej</div><div>ukryte</div>`;
+    }
     mb2.appendChild(bh2);
 
+    if(!selectedAbsenceEmp){
+      const empty=document.createElement('div');
+      empty.className='absence-empty';
+      empty.textContent='Wybierz pracownika w tabeli powyżej, aby zobaczyć jego terminy U / O / L4 / UT z całego roku.';
+      mb2.appendChild(empty);
+      host.appendChild(mb2);
+      els.tableWrap.innerHTML="";
+      els.tableWrap.appendChild(host);
+      return;
+    }
+
     const table2=document.createElement('table');
+    table2.className='absence-list-table';
+    const cg2=document.createElement('colgroup');
+    ;['c-date','c-day','c-name','c-code','c-desc'].forEach(cl=>{ const c=document.createElement('col'); c.className=cl; cg2.appendChild(c); });
+    table2.appendChild(cg2);
+
     const thead2=document.createElement('thead');
     const trB=document.createElement('tr');
-    ["Data","Dzień","Imię i nazwisko","Kod","Opis"].forEach(t=>{
-      const th=document.createElement('th'); th.textContent=t; trB.appendChild(th);
+    ["Data","Dzień","Imię i nazwisko","Kod","Opis"].forEach((t,idx)=>{
+      const th=document.createElement('th');
+      th.textContent=t;
+      if(idx===1 || idx===3) th.className='sumc';
+      trB.appendChild(th);
     });
     thead2.appendChild(trB);
     table2.appendChild(thead2);
 
     const tbody2=document.createElement('tbody');
-    if(entries.length){
+    if(filteredEntries.length){
       const codeLabels = { U:"Urlop", O:"Opieka", L4:"L4", UT:"Urlop za targi" };
       const statusClsByCode = { U:"good", O:"warn", L4:"bad", UT:"good" };
-      entries.forEach(e=>{
+      filteredEntries.forEach(e=>{
         const tr=document.createElement('tr');
         const tdD=document.createElement('td'); tdD.className="sum"; tdD.textContent=e.label; tr.appendChild(tdD);
-        const tdW=document.createElement('td'); tdW.className="sum"; tdW.textContent=e.weekday; tr.appendChild(tdW);
+        const tdW=document.createElement('td'); tdW.className="sum"; tdW.style.textAlign='center'; tdW.textContent=e.weekday; tr.appendChild(tdW);
         const tdE=document.createElement('td'); tdE.className="name"; tdE.innerHTML=`<b>${e.emp}</b>`; tr.appendChild(tdE);
-        const tdC=document.createElement('td'); tdC.className="sum"; tdC.innerHTML=`<span class="status ${statusClsByCode[e.code] || 'warn'}">${e.code}</span>`; tr.appendChild(tdC);
+        const tdC=document.createElement('td'); tdC.className="sum"; tdC.style.textAlign='center'; tdC.innerHTML=`<span class="status ${statusClsByCode[e.code] || 'warn'}">${e.code}</span>`; tr.appendChild(tdC);
         const tdO=document.createElement('td'); tdO.textContent=codeLabels[e.code] || e.code; tr.appendChild(tdO);
         tbody2.appendChild(tr);
       });
@@ -1412,7 +1486,7 @@
       td.colSpan=5;
       td.style.padding='14px';
       td.style.color='var(--muted)';
-      td.textContent='Brak wpisanych kodów U / O / L4 / UT w całym roku.';
+      td.textContent='Brak wpisanych kodów U / O / L4 / UT dla wybranego pracownika.';
       tr.appendChild(td);
       tbody2.appendChild(tr);
     }
