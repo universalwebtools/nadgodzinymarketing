@@ -194,6 +194,9 @@
     .in.code-o{background:rgba(129,88,214,.22); border-color:rgba(129,88,214,.55); color:#efe5ff; font-weight:800}
     .in.code-l4{background:rgba(214,89,49,.20); border-color:rgba(214,89,49,.52); color:#ffe7dc; font-weight:800}
     .in.code-ut{background:rgba(31,143,78,.16); border-color:rgba(31,143,78,.45); color:#ddffea; font-weight:800}
+    .in.num-pos{background:rgba(31,143,78,.14); border-color:rgba(31,143,78,.42); color:#ddffea; font-weight:800}
+    .in.num-neg{background:rgba(198,40,40,.14); border-color:rgba(198,40,40,.42); color:#ffd8d8; font-weight:800}
+
     .sum{font-family:var(--mono); font-size:12px; white-space:nowrap}
     .status{font-weight:800; font-size:12px; padding:7px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14); display:inline-flex;}
     .status.good{background:rgba(31,143,78,.22); border-color:rgba(31,143,78,.40)}
@@ -365,18 +368,6 @@
     .year-summary-table th:nth-child(3), .year-summary-table td:nth-child(3){text-align:center}
     .year-summary-table td:nth-child(2) .saldo, .year-summary-table td:nth-child(3) .status{justify-content:center}
 
-
-  /* num +/- highlights */
-  .dayInput.num-plus{
-    background: rgba(34, 197, 94, 0.16) !important;
-    border-color: rgba(34, 197, 94, 0.45) !important;
-    color: #d6ffe6 !important;
-  }
-  .dayInput.num-minus{
-    background: rgba(239, 68, 68, 0.16) !important;
-    border-color: rgba(239, 68, 68, 0.45) !important;
-    color: #ffe0e0 !important;
-  }
 </style>
 </head>
 <body>
@@ -570,6 +561,8 @@
     fbAuthMsg: document.getElementById('fbAuthMsg'),
     fbLoginBtn: document.getElementById('fbLoginBtn'),
     adminHolidaysToggle: document.getElementById('adminHolidaysToggle'),
+    adminSaveSettings: document.getElementById('adminSaveSettings'),
+    adminSettingsSaved: document.getElementById('adminSettingsSaved'),
   };
 
   // ====== UI copy tweaks (online/shared version) ======
@@ -716,39 +709,23 @@ function normalizeCellValue(val){
     return '';
   }
   function paintDayInput(input){
-    // reset classes
-    input.classList.remove('code-u','code-o','code-l4','code-ut','num-plus','num-minus');
-
-    const raw = normalizeCellValue(input.value || "");
-    if(!raw){ return; }
-
-    // Absence codes
-    if(raw==="U"){ input.classList.add('code-u'); return; }
-    if(raw==="O"){ input.classList.add('code-o'); return; }
-    if(raw==="L4"){ input.classList.add('code-l4'); return; }
-    if(raw==="UT"){ input.classList.add('code-ut'); return; }
-
-    // Numbers: highlight + / -
-    const num = Number(raw.replace(',', '.'));
-    if(Number.isFinite(num)){
-      if(num > 0) input.classList.add('num-plus');
-      else if(num < 0) input.classList.add('num-minus');
+    if(!input) return;
+    input.classList.remove('code-u','code-o','code-l4','code-ut','num-pos','num-neg');
+    const cls = codeClassForValue(input.value);
+    if(cls){
+      input.classList.add(cls);
+      return;
+    }
+    // Numeric coloring (+ / -)
+    const v = normalizeCellValue(input.value);
+    if(/^[+-]?\d+(\.\d+)?$/.test(v)){
+      const n = Number(v);
+      if(Number.isFinite(n)){
+        if(n > 0) input.classList.add('num-pos');
+        else if(n < 0) input.classList.add('num-neg');
+      }
     }
   }
-
-function focusNextDayInput(current){
-  try{
-    const emp = current.dataset.emp;
-    const day = parseInt(current.dataset.day||"0",10);
-    if(!emp || !day) return;
-    const next = document.querySelector(`input.dayInput[data-emp="${emp}"][data-day="${day+1}"]`);
-    if(next){
-      next.focus({preventScroll:false});
-      try{ next.select(); }catch(_){}
-    }
-  }catch(e){ console.warn(e); }
-}
-
   function fmt(n){ return (Math.round(n*10)/10).toFixed(1); }
   function statusFromSaldo(s){ return s>0 ? "Nadgodziny" : (s<0 ? "Do odrobienia" : "OK"); }
   function clsFromStatus(st){ return st==="Nadgodziny" ? "good" : (st==="Do odrobienia" ? "bad" : "warn"); }
@@ -809,23 +786,6 @@ function focusNextDayInput(current){
   let currentMonth = 1;
   let currentView = "month";
   let selectedAbsenceEmp = null;
-
-  let pendingFocus = null; // {month, emp, day}
-
-  function focusPendingCell(){
-    if(!pendingFocus) return;
-    const {month, emp, day} = pendingFocus;
-    pendingFocus = null;
-    try{
-      const sel = `input.in[data-month="${CSS.escape(String(month))}"][data-emp="${CSS.escape(String(emp))}"][data-day="${CSS.escape(String(day))}"]`;
-      const el = document.querySelector(sel);
-      if(el){
-        el.focus({preventScroll:false});
-        el.select?.();
-        el.scrollIntoView({block:"nearest", inline:"nearest"});
-      }
-    }catch(e){/* ignore */}
-  }
 
   // ====== Firebase ======
   let app = null;
@@ -968,60 +928,38 @@ function focusNextDayInput(current){
       updatedAt: Date.now(),
       employees: employees.slice(),
       months: JSON.parse(JSON.stringify(state.months || {})),
-      settings: JSON.parse(JSON.stringify(state.settings || {}))
+      settings: JSON.parse(JSON.stringify(state.settings || { holidaysEnabled: true }))
     };
   }
 
-  function saveRemoteData(showAlert=true){
-  if(!dbRef){ showToast("Brak połączenia z bazą (Firebase)."); return Promise.resolve(false); }
-  const payload = {
-    updatedAt: Date.now(),
-    employees: Array.isArray(state.employees) ? state.employees : [],
-    months: state.months || {}
-  };
-  cloudStatus("zapisywanie…");
-  return dbRef.update(payload).then(()=>{
-    cloudStatus("zapisano");
-    if(showAlert) showToast("Zapisano w chmurze.");
-    return true;
-  }).catch((e)=>{
-    console.error(e);
-    cloudStatus("błąd");
-    showToast("Błąd zapisu do chmury.");
-    return false;
-  });
-}
+  function saveRemote(showAlert=false){
+    if (!dbRef || !currentUser) {
+      showAuthModal();
+      showAuthMsg('Najpierw zaloguj się do Firebase.', false);
+      return Promise.reject(new Error('Not authenticated'));
+    }
+    const payload = cloneForSave();
+    state.updatedAt = payload.updatedAt;
+    state.employees = employees.slice();
 
-function saveRemoteSettings(showAlert=true){
-  if(!dbRef){ showToast("Brak połączenia z bazą (Firebase)."); return Promise.resolve(false); }
-  const payload = {
-    holidaysEnabled: !!(state.settings && state.settings.holidaysEnabled),
-    updatedAt: Date.now()
-  };
-  cloudStatus("zapisywanie…");
-  return dbRef.child("settings").update(payload).then(()=>{
-    cloudStatus("zapisano");
-    if(showAlert) showToast("Zapisano ustawienia (admin).");
-    // przerysuj nagłówki (święta/kolory)
-    renderCurrentView();
-    return true;
-  }).catch((e)=>{
-    console.error(e);
-    cloudStatus("błąd");
-    showToast("Błąd zapisu ustawień.");
-    return false;
-  });
-}
-
-// zgodność wsteczna
-function saveRemote(showAlert=true){
-  return saveRemoteData(showAlert);
-}
+    showToast('zapis…', true);
+    return dbRef.set(payload)
+      .then(() => {
+        if (showAlert) alert('Zapisano do chmury ✅');
+        showToast('zapisano', true);
+      })
+      .catch((err) => {
+        console.error(err);
+        showToast('błąd zapisu', false);
+        alert('Błąd zapisu do Firebase: ' + (err.message || err));
+        throw err;
+      });
+  }
 
   function queueSave(delay=700){
     if (!remoteReady || !currentUser) return;
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => { saveRemoteData(false).catch(()=>{}); }, delay);
+    saveTimer = setTimeout(() => { saveRemote(false).catch(()=>{}); }, delay);
   }
 
   // ====== Admin panel (local password, shared data) ======
@@ -1121,7 +1059,7 @@ function saveRemote(showAlert=true){
         render();
         renderAdminEmployees();
         showAdminMsg("Zmieniono nazwę i przeniesiono dane ✅", true);
-        await saveRemoteData(false).catch(()=>{});
+        await saveRemote(false).catch(()=>{});
       });
 
       delBtn.addEventListener('click', async ()=>{
@@ -1155,7 +1093,7 @@ function saveRemote(showAlert=true){
         render();
         renderAdminEmployees();
         showAdminMsg(removeData ? "Usunięto osobę i jej dane ✅" : "Usunięto osobę z listy ✅", true);
-        await saveRemoteData(false).catch(()=>{});
+        await saveRemote(false).catch(()=>{});
       });
 
       row.appendChild(inp);
@@ -1179,7 +1117,7 @@ function saveRemote(showAlert=true){
         employees = state.employees.slice();
         render();
         try {
-          await saveRemoteData(false);
+          await saveRemote(false);
           showAdminMsg("Wyczyszczono dane w chmurze ✅", true);
         } catch(e) {
           showAdminMsg("Błąd resetu w chmurze.", false);
@@ -1206,7 +1144,7 @@ function saveRemote(showAlert=true){
       els.adminEmpAdd.value = "";
       renderAdminEmployees();
       showAdminMsg("Dodano pracownika ✅", true);
-      await saveRemoteData(false).catch(()=>{});
+      await saveRemote(false).catch(()=>{});
     });
   }
 
@@ -1225,7 +1163,7 @@ function saveRemote(showAlert=true){
 
     if(els.adminHolidaysToggle){
       els.adminHolidaysToggle.addEventListener('change', ()=>{
-        if(!adminUnlocked) return;
+        if(!isAdmin()) return;
         state.settings = state.settings || {};
         state.settings.holidaysEnabled = !!els.adminHolidaysToggle.checked;
         state.updatedAt = Date.now();
@@ -1234,9 +1172,9 @@ function saveRemote(showAlert=true){
       });
       if(els.adminSaveSettings){
         els.adminSaveSettings.addEventListener('click', ()=>{
-          if(!adminUnlocked) return;
+          if(!isAdmin()) return;
           state.updatedAt = Date.now();
-          saveRemoteData(true);
+          saveRemote(true);
           if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = "Zapisano ✓";
           showToast(state.settings && state.settings.holidaysEnabled ? "Zapisano ustawienia (święta: WŁ.)" : "Zapisano ustawienia (święta: WYŁ.)");
         });
@@ -1501,9 +1439,6 @@ function saveRemote(showAlert=true){
           input.autocomplete="off";
           input.spellcheck=false;
           input.maxLength = 6;
-          input.dataset.emp = emp.id;
-          input.dataset.day = String(d);
-          input.dataset.month = String(monthIdx+1);
           if (d<=dim && state.settings && state.settings.holidaysEnabled){
             const hn = holidayName(YEAR,m,d);
             if (hn) input.title = hn;
@@ -1525,6 +1460,29 @@ function saveRemote(showAlert=true){
             queueSave(1200);
           });
 
+          input.addEventListener('keydown', (e)=>{
+            if(e.key === 'Enter'){
+              e.preventDefault();
+              // trigger normalization + save from blur, then jump to next day
+              input.blur();
+              setTimeout(()=>{
+                const td = input.closest('td');
+                const tr = input.closest('tr');
+                if(!td || !tr) return;
+                let next = td.nextElementSibling;
+                while(next){
+                  const ni = next.querySelector && next.querySelector('input.in');
+                  if(ni && !ni.disabled){
+                    ni.focus();
+                    ni.select();
+                    return;
+                  }
+                  next = next.nextElementSibling;
+                }
+              }, 0);
+            }
+          });
+
           input.addEventListener('blur', ()=>{
             const v = normalizeCellValue(input.value);
             input.value = v;
@@ -1532,20 +1490,10 @@ function saveRemote(showAlert=true){
             arr[d-1] = v;
             buildMonths();
             setMonthPreview();
-            saveRemoteData(false).catch(()=>{});
+            saveRemote(false).catch(()=>{});
             if (pendingRemote && !isEditingCell()) {
               const pr = pendingRemote; pendingRemote = null;
               applyRemoteData(pr, true);
-            }
-          });
-
-          input.addEventListener('keydown', (e)=>{
-            if(e.key === 'Enter'){
-              e.preventDefault();
-              // wymuś zapis przez blur
-              input.blur();
-              // przejdź do kolejnego dnia w tym samym wierszu
-              focusNextDayInput(input);
             }
           });
 
@@ -1760,8 +1708,6 @@ function saveRemote(showAlert=true){
     if(currentView==="month") renderMonth();
     else if(currentView==="summary_absences") renderAbsenceSummary();
     else renderSummary();
-    // If user used Enter to confirm value, move focus after re-render
-    setTimeout(focusPendingCell, 0);
   }
 
   els.viewSel.addEventListener('change', ()=>{
@@ -1769,7 +1715,7 @@ function saveRemote(showAlert=true){
     render();
   });
 
-  els.saveBtn.addEventListener('click', ()=>{ saveRemoteData(true).catch(()=>{}); });
+  els.saveBtn.addEventListener('click', ()=>{ saveRemote(true).catch(()=>{}); });
 
   els.resetBtn.addEventListener('click', async ()=>{
     if(!isAdmin()){
@@ -1782,7 +1728,7 @@ function saveRemote(showAlert=true){
       employees = state.employees.slice();
       render();
       try {
-        await saveRemoteData(false);
+        await saveRemote(false);
         alert("Wyczyszczono dane w chmurze ✅");
       } catch(e) {}
     }
