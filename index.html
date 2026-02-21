@@ -1554,8 +1554,8 @@ function normalizeCellValue(val){
 
         for(let d=block.start; d<=block.end; d++){
           const td=document.createElement('td'); td.className="daycell";
-          if (d<=dim && state.settings && state.settings.holidaysEnabled){
-            const hn = holidayName(YEAR,m,d);
+          if (d<=dim){
+            const hn = (state.settings && state.settings.holidaysEnabled) ? holidayName(YEAR,m,d) : "";
             if (hn) { td.classList.add('is-holiday'); }
             else if (isWeekend(YEAR,m,d)) { td.classList.add('is-weekend'); }
           }
@@ -1593,6 +1593,7 @@ function normalizeCellValue(val){
           input.addEventListener('keydown', (e)=>{
             if(e.key === 'Enter'){
               e.preventDefault();
+              e.stopPropagation();
 
               const dir = e.shiftKey ? -1 : 1;
 
@@ -1602,34 +1603,38 @@ function normalizeCellValue(val){
               paintDayInput(input);
               arr[d-1] = v;
 
+              // Odśwież saldo/status w tym miesiącu dla pracownika
               const t = calcMonthTotalsForEmp(m, emp);
               document.querySelectorAll(`tr[data-emp="${cssEscape(emp)}"][data-month="${m}"]`).forEach(row=>{
                 row.querySelector('[data-role="saldo"]').innerHTML = `<span class="saldo ${t.cls}">${fmt(t.saldo)}</span>`;
                 row.querySelector('[data-role="status"]').innerHTML = `<span class="status ${t.cls}">${t.status}</span>`;
               });
 
-              buildMonths();
+              // Podgląd + zapis w chmurze (bez przebudowy całego DOM tutaj)
               setMonthPreview();
               saveRemote(false).catch(()=>{});
 
-              // Przejdź do następnego/poprzedniego dnia w tym samym wierszu
-              const targetDay = d + dir;
-              if(targetDay < 1 || targetDay > dim) return;
-
-              // buildMonths() przebudowuje DOM, więc fokus ustawiamy "po renderze"
-              requestAnimationFrame(()=>{
-                const sel = `input.in[data-emp="${cssEscape(emp)}"][data-month="${m}"][data-day="${targetDay}"]`;
-                const ni = document.querySelector(sel);
-                if(ni && !ni.disabled){
-                  ni.focus();
-                  ni.select();
+              // Przejdź do następnego/poprzedniego dnia (SHIFT+ENTER wstecz)
+              const tryFocus = (day)=>{
+                const sel = `input.in[data-emp="${cssEscape(emp)}"][data-month="${m}"][data-day="${day}"]`;
+                const el = document.querySelector(sel);
+                if(el && !el.disabled){
+                  el.focus({preventScroll:true});
+                  el.select();
+                  // delikatnie przewiń, jeśli trzeba
+                  el.scrollIntoView({block:'nearest', inline:'nearest'});
+                  return true;
                 }
-              });
+                return false;
+              };
+
+              let day = d + dir;
+              while(day >= 1 && day <= dim){
+                if(tryFocus(day)) break;
+                day += dir;
+              }
             }
-          });
-
-
-          input.addEventListener('blur', ()=>{
+          });input.addEventListener('blur', ()=>{
             const v = normalizeCellValue(input.value);
             input.value = v;
             paintDayInput(input);
