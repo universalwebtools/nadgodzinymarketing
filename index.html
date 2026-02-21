@@ -1566,6 +1566,9 @@ function normalizeCellValue(val){
           input.autocomplete="off";
           input.spellcheck=false;
           input.maxLength = 6;
+          input.dataset.emp = emp;
+          input.dataset.month = String(m);
+          input.dataset.day = String(d);
           if (d<=dim && state.settings && state.settings.holidaysEnabled){
             const hn = holidayName(YEAR,m,d);
             if (hn) input.title = hn;
@@ -1590,7 +1593,10 @@ function normalizeCellValue(val){
           input.addEventListener('keydown', (e)=>{
             if(e.key === 'Enter'){
               e.preventDefault();
-              // Zatwierdź jak przy blur + przejdź do następnego dnia w tym samym wierszu
+
+              const dir = e.shiftKey ? -1 : 1;
+
+              // Zatwierdź wpis (jak przy blur, ale bez utraty focusu)
               const v = normalizeCellValue(input.value);
               input.value = v;
               paintDayInput(input);
@@ -1604,23 +1610,24 @@ function normalizeCellValue(val){
 
               buildMonths();
               setMonthPreview();
-              queueSave(700);
+              saveRemote(false).catch(()=>{});
 
-              const td = input.closest('td');
-              const tr = input.closest('tr');
-              if(!td || !tr) return;
-              let next = td.nextElementSibling;
-              while(next){
-                const ni = next.querySelector && next.querySelector('input.in');
+              // Przejdź do następnego/poprzedniego dnia w tym samym wierszu
+              const targetDay = d + dir;
+              if(targetDay < 1 || targetDay > dim) return;
+
+              // buildMonths() przebudowuje DOM, więc fokus ustawiamy "po renderze"
+              requestAnimationFrame(()=>{
+                const sel = `input.in[data-emp="${cssEscape(emp)}"][data-month="${m}"][data-day="${targetDay}"]`;
+                const ni = document.querySelector(sel);
                 if(ni && !ni.disabled){
                   ni.focus();
                   ni.select();
-                  return;
                 }
-                next = next.nextElementSibling;
-              }
+              });
             }
           });
+
 
           input.addEventListener('blur', ()=>{
             const v = normalizeCellValue(input.value);
