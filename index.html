@@ -502,6 +502,12 @@
           </div>
 
           <div class="admin-note" style="margin:12px 0 10px 0">Zamknięcie miesiąca blokuje edycję wpisów (także „Masowe wpisy”). Odblokowanie możliwe w każdej chwili.</div>
+          <div class="admin-head" style="padding:4px 2px">Zamknięcie roku</div>
+          <div class="admin-check" style="justify-content:space-between; margin:6px 0 14px 0">
+            <div><b>Zamknij cały rok</b><div class="hint" style="margin-top:2px">Blokuje edycję wszystkich miesięcy w wybranym roku.</div></div>
+            <input id="adminYearLock" type="checkbox" style="width:18px;height:18px">
+          </div>
+
           <div class="admin-head" style="padding:4px 2px">Zamknięcie miesięcy</div>
           <div id="adminLocksList" class="admin-list" style="gap:6px;margin-bottom:12px"></div>
 
@@ -669,6 +675,7 @@
     currentMonth = 1;
 
     // Update DB ref and resubscribe if logged in
+    detachRemote();
     try {
       if (db) dbRef = db.ref(DB_PATH());
     } catch(e) {}
@@ -769,6 +776,7 @@
     adminColorUT: document.getElementById('adminColorUT'),
     adminResetColors: document.getElementById('adminResetColors'),
     adminLocksList: document.getElementById('adminLocksList'),
+    adminYearLock: document.getElementById('adminYearLock'),
     bulkBtn: document.getElementById('bulkBtn'),
     bulkModal: document.getElementById('bulkModal'),
     bulkCloseBtn: document.getElementById('bulkCloseBtn'),
@@ -1022,6 +1030,7 @@ function normalizeCellValue(val){
   }
 
   function isMonthLocked(m){
+    if (state.settings && state.settings.yearLocked) return true;
     return !!(state.settings && state.settings.monthLocks && state.settings.monthLocks[m]);
   }
 
@@ -1105,6 +1114,7 @@ function normalizeCellValue(val){
   let auth = null;
   let db = null;
   let dbRef = null;
+  let dbRefActive = null;
   let dbListener = null;
   let currentUser = null;
   let pendingRemote = null;
@@ -1192,10 +1202,11 @@ function normalizeCellValue(val){
   }
 
   function detachRemote(){
-    if (dbRef && dbListener) {
-      dbRef.off('value', dbListener);
+    if (dbRefActive && dbListener) {
+      try { dbRefActive.off('value', dbListener); } catch(e) {}
     }
     dbListener = null;
+    dbRefActive = null;
     pendingRemote = null;
   }
 
@@ -1220,6 +1231,7 @@ function normalizeCellValue(val){
   function subscribeRemote(){
     if (!dbRef || !currentUser) return;
     detachRemote();
+    dbRefActive = dbRef;
     dbListener = (snap) => {
       const val = snap.val();
       const normalized = normalizeState(val);
@@ -1229,7 +1241,7 @@ function normalizeCellValue(val){
       }
       applyRemoteData(normalized, true);
     };
-    dbRef.on('value', dbListener, (err) => {
+    dbRefActive.on('value', dbListener, (err) => {
       console.error(err);
       showToast('błąd odczytu', false);
       alert('Błąd odczytu z Firebase: ' + (err.message || err));
@@ -1377,7 +1389,20 @@ function normalizeCellValue(val){
     setPicker(els.adminColorL4, cc.L4);
     setPicker(els.adminColorUT, cc.UT);
     if(els.adminResetColors) els.adminResetColors.disabled = !on;
-    if(els.adminLocksList){
+    
+    // Year lock
+    if(els.adminYearLock){
+      state.settings = state.settings || {};
+      els.adminYearLock.checked = !!state.settings.yearLocked;
+      els.adminYearLock.disabled = !on;
+      els.adminYearLock.onchange = () => {
+        state.settings.yearLocked = !!els.adminYearLock.checked;
+        state.updatedAt = Date.now();
+        render(); // preview
+        if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = 'Niezapisane zmiany…';
+      };
+    }
+if(els.adminLocksList){
       els.adminLocksList.innerHTML = "";
       state.settings = state.settings || {};
       state.settings.monthLocks = state.settings.monthLocks || {};
@@ -1395,7 +1420,7 @@ function normalizeCellValue(val){
         cb.style.height='18px';
         cb.style.accentColor='#5aa7ff';
         cb.checked = !!state.settings.monthLocks[mm];
-        cb.disabled = !on;
+        cb.disabled = (!on) || (state.settings && state.settings.yearLocked);
         cb.addEventListener('change', ()=>{
           if(!isAdmin()) return;
           state.settings = state.settings || {};
@@ -2045,6 +2070,89 @@ if(typed !== phrase){
     return { plus, minus, saldo, status: statusFromSaldo(saldo) };
   }
 
+  function yearTotalsForEmpFromData(y, data, emp){
+    let plus=0, minus=0, saldo=0;
+    const months = (data && data.months) ? data.months : {};
+    for(let m=1;m<=12;m++){
+      const arr = (months[m] && months[m][emp]) ? months[m][emp] : Array(31).fill("");
+      const dim = daysInMonth(y,m);
+      for(let d=1; d<=dim; d++){
+        const v = parseNum(arr[d-1]);
+        if(v>0) plus += v;
+        if(v<0) minus += (-v);
+        saldo += v;
+      }
+    }
+    return { plus, minus, saldo, status: statusFromSaldo(saldo) };
+  }
+
+  async function loadPeriodSummary(){
+    const msg = document.getElementById('periodSummaryMsg');
+    const wrap = document.getElementById('periodSummaryWrap');
+    if (msg) msg.textContent = '';
+    if (wrap) wrap.innerHTML = '';
+
+    if (!db || !currentUser) {
+      if (msg) msg.textContent = 'Zaloguj się do chmury, aby wczytać podsumowanie okresu.';
+      showAuthModal();
+      showAuthMsg('Zaloguj się do Firebase, aby wczytać podsumowanie okresu.', false);
+      return;
+    }
+
+    if (msg) msg.textContent = 'Wczytywanie…';
+    try{
+      const years = YEARS.slice();
+      const snaps = await Promise.all(years.map(y => db.ref(`nadgodziny/${y}/app`).once('value').then(s=>[y,s.val()])));
+      // union employees across years
+      const empSet = new Set();
+      for (const [y, data] of snaps){
+        const list = (data && Array.isArray(data.employees)) ? data.employees : [];
+        list.forEach(e => empSet.add(e));
+        // also include keys from months in case employees list missing
+        if (data && data.months){
+          for (const m of Object.keys(data.months)){
+            const mm = data.months[m] || {};
+            Object.keys(mm).forEach(e => empSet.add(e));
+          }
+        }
+      }
+      const emps = sortEmployees(Array.from(empSet));
+      const rows = emps.map(emp => {
+        let saldo=0, plus=0, minus=0;
+        for (const [y,data] of snaps){
+          const t = yearTotalsForEmpFromData(y, data||{}, emp);
+          saldo += t.saldo; plus += t.plus; minus += t.minus;
+        }
+        return { emp, saldo, plus, minus, status: statusFromSaldo(saldo) };
+      });
+
+      // build table
+      const table = document.createElement('table');
+      table.className = 'year-summary-table';
+      table.style.marginTop = '8px';
+      table.innerHTML = `
+        <colgroup><col style="width:320px"><col style="width:190px"><col style="width:190px"></colgroup>
+        <thead><tr><th>Imię i nazwisko</th><th>Saldo (${YEAR_MIN}–${YEAR_MAX})</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      `;
+      const tbody = table.querySelector('tbody');
+      for (const r of rows){
+        const tr = document.createElement('tr');
+        const td1 = document.createElement('td'); td1.className='name'; td1.innerHTML = `<b>${r.emp}</b>`; tr.appendChild(td1);
+        const td2 = document.createElement('td'); td2.className='sum'; td2.textContent = formatNum(r.saldo); tr.appendChild(td2);
+        const td3 = document.createElement('td'); td3.className = 'status ' + clsFromStatus(r.status); td3.textContent = r.status; tr.appendChild(td3);
+        tbody.appendChild(tr);
+      }
+      if (wrap) wrap.appendChild(table);
+      if (msg) msg.textContent = `Gotowe (${YEARS.length} lat).`;
+    }catch(e){
+      console.error(e);
+      if (msg) msg.textContent = 'Błąd wczytywania podsumowania.';
+      alert('Nie udało się wczytać podsumowania okresu: ' + (e.message || e));
+    }
+  }
+
+
 
   function collectAbsenceEntries(){
     const out = [];
@@ -2317,8 +2425,27 @@ if(typed !== phrase){
     table.appendChild(tbody);
     mb.appendChild(table);
 
+    // ====== Podsumowanie całego okresu (wymaga dostępu do chmury) ======
+    const period = document.createElement('div');
+    period.className = 'period-summary';
+    period.style.marginTop = '14px';
+    period.innerHTML = `
+      <details class="admin-accordion" open>
+        <summary><b>Podsumowanie całego okresu</b> <span class="hint">(${YEAR_MIN}–${YEAR_MAX})</span></summary>
+        <div style="margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+          <button class="btn" id="btnLoadPeriodSummary" type="button">Odśwież podsumowanie okresu</button>
+          <span id="periodSummaryMsg" class="hint"></span>
+        </div>
+        <div id="periodSummaryWrap" style="margin-top:10px"></div>
+      </details>
+    `;
+    mb.appendChild(period);
+
     els.tableWrap.innerHTML="";
     els.tableWrap.appendChild(mb);
+
+    const btn = document.getElementById('btnLoadPeriodSummary');
+    if (btn) btn.onclick = () => loadPeriodSummary();
   }
 
 
