@@ -437,6 +437,7 @@
           <option value="month">Miesiąc (edycja)</option>
           <option value="summary">Podsumowanie roku (tylko odczyt)</option>
           <option value="summary_absences">Podsumowanie urlopy (tylko odczyt)</option>
+          <option value="summary_period">Podsumowanie całego okresu (tylko odczyt)</option>
         </select>
       </div>
 
@@ -841,7 +842,32 @@
     const n = Number(s);
     return Number.isFinite(n) ? n : 0;
   }
-  const ABSENCE_CODES = new Set(['U','O','L4','UT','T','Z']);
+  const CODE_META = {
+    U: { label: 'Urlop', cls: 'good' },
+    O: { label: 'Odbiór / oddanie', cls: 'warn' },
+    L4: { label: 'L4', cls: 'bad' },
+    UT: { label: 'Urlop / inny kod', cls: 'good' },
+    T: { label: 'Targi', cls: 'warn' },
+    Z: { label: 'Zdalnie', cls: 'good' }
+  };
+  function getTrackedCodes(){
+    const cc = (state && state.settings && state.settings.codeColors && typeof state.settings.codeColors === 'object') ? state.settings.codeColors : defaultState().settings.codeColors;
+    const keys = Object.keys(cc || {}).filter(Boolean);
+    const preferred = ['U','O','L4','UT','T','Z'];
+    const ordered = [];
+    preferred.forEach(k=>{ if(keys.includes(k)) ordered.push(k); });
+    keys.forEach(k=>{ if(!ordered.includes(k)) ordered.push(k); });
+    return ordered;
+  }
+  function getCodeLabel(code){
+    return (CODE_META[code] && CODE_META[code].label) ? CODE_META[code].label : code;
+  }
+  function getCodeStatusClass(code){
+    return (CODE_META[code] && CODE_META[code].cls) ? CODE_META[code].cls : 'warn';
+  }
+  function isTrackedCode(v){
+    return getTrackedCodes().includes(v);
+  }
   
   // ===== Święta / dni wolne (PL) =====
   function easterDateGregorian(year){
@@ -908,7 +934,7 @@ function normalizeCellValue(val){
     if(val==null) return '';
     let v = String(val).trim().replace(',', '.').toUpperCase();
     if(!v || v==='-' || v==='+') return '';
-    if(ABSENCE_CODES.has(v)) return v;
+    if(isTrackedCode(v)) return v;
     if(/^[+-]?\d+(\.\d+)?$/.test(v)) return v;
     return '';
   }
@@ -2122,7 +2148,7 @@ if(typed !== phrase){
         const arr = (state.months[m] && state.months[m][emp]) ? state.months[m][emp] : Array(31).fill("");
         for(let d=1; d<=dim; d++){
           const raw = normalizeCellValue(arr[d-1]);
-          if(!ABSENCE_CODES.has(raw)) continue;
+          if(!isTrackedCode(raw)) continue;
           out.push({
             emp,
             code: raw,
@@ -2149,13 +2175,486 @@ if(typed !== phrase){
       const arr = (state.months[m] && state.months[m][emp]) ? state.months[m][emp] : Array(31).fill("");
       for(let d=1; d<=dim; d++){
         const v = normalizeCellValue(arr[d-1]);
-        if(ABSENCE_CODES.has(v)){
+        if(isTrackedCode(v)){
           counts[v] = (counts[v] || 0) + 1;
           counts.total++;
         }
       }
     }
     return counts;
+  }
+
+  function buildMonths(){
+    els.months.innerHTML = "";
+    for(let m=1;m<=12;m++){
+      const t = monthTeamTotals(m);
+      const btn = document.createElement('button');
+      const locked = isMonthLocked(m);
+      btn.className = "mbtn" + (m===currentMonth && currentView==="month" ? " active":"") + (locked ? " locked":"");
+      btn.type="button";
+      btn.innerHTML = `<span><b>${monthNames[m-1]} ${currentYear}</b></span>${locked ? `<span class="lock-state">🔒 Zamknięty</span>` : ``}`;
+      btn.addEventListener('click', ()=>{
+        currentMonth = m;
+        currentView = "month";
+        els.viewSel.value = "month";
+        render();
+      });
+      els.months.appendChild(btn);
+    }
+  }
+
+  function setMonthPreview(){
+    // Panel podglądu miesiąca został usunięty — zachowujemy funkcję dla kompatybilności wywołań.
+    return;
+  }
+
+  function calcMonthTotalsForEmp(m, emp){
+    const arr = (state.months[m] && state.months[m][emp]) ? state.months[m][emp] : Array(31).fill("");
+    const dim = daysInMonth(currentYear,m);
+    let plus=0, minus=0, saldo=0;
+    for(let d=1; d<=dim; d++){
+      const v=parseNum(arr[d-1]);
+      if(v>0) plus+=v;
+      if(v<0) minus+=(-v);
+      saldo+=v;
+    }
+    const st=statusFromSaldo(saldo);
+    return {plus, minus, saldo, status:st, cls:clsFromStatus(st)};
+  }
+
+  function renderMonth(){
+    const m = currentMonth;
+    const dim = daysInMonth(currentYear,m);
+    const locked = isMonthLocked(m);
+    els.mainTitle.textContent = `${monthNames[m-1]} ${currentYear}` + (locked ? `  🔒 (zamknięty)` : ``);
+    setMonthPreview();
+
+    const blocks = [
+      {label:`Dni 1–16`, start:1, end:16},
+      {label:`Dni 17–31`, start:17, end:31},
+    ];
+
+    const host = document.createElement('div');
+
+    for(const block of blocks){
+      const mb = document.createElement('div');
+      mb.className = "monthblock";
+
+      const bh = document.createElement('div');
+      bh.className = "blockhead";
+      bh.innerHTML = `<div><b>${block.label}</b> • wpisuj: <b>10</b>, <b>-2</b>, <b>0,5</b>, <b>U</b>, <b>O</b>, <b>L4</b>, <b>UT</b>, <b>T</b>, <b>Z</b>` + (locked ? ` • <span style="color:#ffb4b4">MIESIĄC ZAMKNIĘTY 🔒</span>` : ``) + `</div><div>zapis do chmury po wyjściu z pola</div>`;
+      mb.appendChild(bh);
+
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const tr1 = document.createElement('tr');
+
+      const thName = document.createElement('th'); thName.textContent="Imię i nazwisko"; tr1.appendChild(thName);
+
+      for(let d=block.start; d<=block.end; d++){
+        const th=document.createElement('th');
+        th.textContent=d;
+        if (d<=dim){
+          const hn = (state.settings && state.settings.holidaysEnabled) ? holidayName(currentYear,m,d) : "";
+          if (hn) { th.classList.add('is-holiday-head'); th.title = hn; }
+          else if (isWeekend(currentYear,m,d)) { th.classList.add('is-weekend-head'); }
+        }
+        tr1.appendChild(th);
+      }
+      ["Saldo","Status"].forEach(t=>{
+        const th=document.createElement('th'); th.textContent=t; tr1.appendChild(th);
+      });
+
+      thead.appendChild(tr1);
+
+      const tr2 = document.createElement('tr');
+      tr2.appendChild(document.createElement('th'));
+      for(let d=block.start; d<=block.end; d++){
+        const th=document.createElement('th');
+        th.textContent = (d<=dim) ? weekdayPL(currentYear,m,d) : "—";
+        if (d<=dim){
+          const hn = (state.settings && state.settings.holidaysEnabled) ? holidayName(currentYear,m,d) : "";
+          if (hn) { th.classList.add('is-holiday-head'); th.title = hn; }
+          else if (isWeekend(currentYear,m,d)) { th.classList.add('is-weekend-head'); }
+        }
+        tr2.appendChild(th);
+      }
+      tr2.appendChild(document.createElement('th'));
+      tr2.appendChild(document.createElement('th'));
+      thead.appendChild(tr2);
+
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+
+      for(const emp of employees){
+        const tr=document.createElement('tr');
+        tr.setAttribute("data-emp", emp);
+        tr.setAttribute("data-month", String(m));
+
+        const tdName=document.createElement('td'); tdName.className="name"; tdName.innerHTML=`<b>${emp}</b>`; tr.appendChild(tdName);
+
+        if (!state.months[m]) state.months[m] = {};
+        if (!state.months[m][emp]) state.months[m][emp] = Array(31).fill("");
+        const arr = state.months[m][emp];
+
+        for(let d=block.start; d<=block.end; d++){
+          const td=document.createElement('td'); td.className="daycell";
+          if (d<=dim){
+            const hn = (state.settings && state.settings.holidaysEnabled) ? holidayName(currentYear,m,d) : "";
+            if (hn) { td.classList.add('is-holiday'); }
+            else if (isWeekend(currentYear,m,d)) { td.classList.add('is-weekend'); }
+          }
+          const input=document.createElement('input');
+          input.className="in";
+          input.inputMode="text";
+          input.autocapitalize="characters";
+          input.autocomplete="off";
+          input.spellcheck=false;
+          input.maxLength = 6;
+          input.dataset.emp = emp;
+          input.dataset.month = String(m);
+          input.dataset.day = String(d);
+          if (d<=dim && state.settings && state.settings.holidaysEnabled){
+            const hn = holidayName(currentYear,m,d);
+            if (hn) input.title = hn;
+          }
+          input.value = arr[d-1] ?? "";
+          input.disabled = (d>dim) || isMonthLocked(m);
+          paintDayInput(input);
+
+          input.addEventListener('input', ()=>{
+            arr[d-1] = input.value.replace(',', '.');
+            paintDayInput(input);
+            const t = calcMonthTotalsForEmp(m, emp);
+            document.querySelectorAll(`tr[data-emp="${cssEscape(emp)}"][data-month="${m}"]`).forEach(row=>{
+              row.querySelector('[data-role="saldo"]').innerHTML = `<span class="saldo ${t.cls}">${fmt(t.saldo)}</span>`;
+              row.querySelector('[data-role="status"]').innerHTML = `<span class="status ${t.cls}">${t.status}</span>`;
+            });
+            // buildMonths() removed to preserve focus while typing
+            setMonthPreview();
+            queueSave(1200);
+          });
+          // keydown handled globally (ENTER / Shift+ENTER)
+          input.addEventListener('blur', ()=>{
+            const v = normalizeCellValue(input.value);
+            input.value = v;
+            paintDayInput(input);
+            arr[d-1] = v;
+            // buildMonths() removed to preserve focus while typing
+            setMonthPreview();
+            saveRemote(false).catch(()=>{});
+            if (pendingRemote && !isEditingCell()) {
+              const pr = pendingRemote; pendingRemote = null;
+              applyRemoteData(pr, true);
+            }
+          });
+
+          td.appendChild(input);
+          tr.appendChild(td);
+        }
+
+        const t = calcMonthTotalsForEmp(m, emp);
+
+        const tdSaldo=document.createElement('td'); tdSaldo.className="sum"; tdSaldo.dataset.role="saldo"; tdSaldo.innerHTML=`<span class="saldo ${t.cls}">${fmt(t.saldo)}</span>`; tr.appendChild(tdSaldo);
+        const tdStatus=document.createElement('td'); tdStatus.className="sum"; tdStatus.dataset.role="status"; tdStatus.innerHTML=`<span class="status ${t.cls}">${t.status}</span>`; tr.appendChild(tdStatus);
+
+        tbody.appendChild(tr);
+      }
+
+      table.appendChild(tbody);
+      mb.appendChild(table);
+      host.appendChild(mb);
+    }
+
+    els.tableWrap.innerHTML="";
+    els.tableWrap.appendChild(host);
+    applyRequestedFocus();
+  }
+
+  function renderSummary(){
+    els.mainTitle.textContent = `Podsumowanie ${currentYear}`;
+    setMonthPreview();
+
+    const mb = document.createElement('div');
+    mb.className="monthblock";
+    const bh = document.createElement('div');
+    bh.className="blockhead";
+    bh.innerHTML = `<div><b>Podsumowanie roczne</b> • tylko odczyt</div><div>status z salda</div>`;
+    mb.appendChild(bh);
+
+    const table=document.createElement('table');
+    table.className='year-summary-table';
+    const colgroup=document.createElement('colgroup');
+    colgroup.innerHTML='<col style="width:320px"><col style="width:190px"><col style="width:190px">';
+    table.appendChild(colgroup);
+    const thead=document.createElement('thead');
+    const tr1=document.createElement('tr');
+    ["Imię i nazwisko","Saldo (rok)","Status (rok)"].forEach(t=>{
+      const th=document.createElement('th'); th.textContent=t; tr1.appendChild(th);
+    });
+    thead.appendChild(tr1);
+    table.appendChild(thead);
+
+    const tbody=document.createElement('tbody');
+    for(const emp of employees){
+      const t=yearTotalsForEmp(emp);
+      const cls=clsFromStatus(t.status);
+
+      const tr=document.createElement('tr');
+      const td1=document.createElement('td'); td1.className="name"; td1.innerHTML=`<b>${emp}</b>`; tr.appendChild(td1);
+      const td5=document.createElement('td'); td5.className="sum"; td5.innerHTML=`<span class="saldo ${cls}">${fmt(t.saldo)}</span>`; tr.appendChild(td5);
+      const td6=document.createElement('td'); td6.className="sum"; td6.innerHTML=`<span class="status ${cls}">${t.status}</span>`; tr.appendChild(td6);
+
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    mb.appendChild(table);
+
+    els.tableWrap.innerHTML="";
+    els.tableWrap.appendChild(mb);
+  }
+
+
+
+  function renderAbsenceSummary(){
+    const codes = getTrackedCodes();
+    els.mainTitle.textContent = `Podsumowanie urlopy ${currentYear}`;
+    setMonthPreview();
+
+    const host = document.createElement('div');
+    const allEntries = collectAbsenceEntries();
+
+    const mb1 = document.createElement('div');
+    mb1.className="monthblock";
+    const bh1 = document.createElement('div');
+    bh1.className="blockhead";
+    bh1.innerHTML = `<div><b>Podsumowanie urlopów / nieobecności</b> • tylko odczyt • kliknij pracownika, aby rozwinąć listę terminów</div><div>Kody: ${codes.join(', ')}</div>`;
+    mb1.appendChild(bh1);
+
+    const table1=document.createElement('table');
+    table1.className = 'absence-summary-table';
+    const cg1=document.createElement('colgroup');
+    const c1n=document.createElement('col'); c1n.className='c-name'; cg1.appendChild(c1n);
+    for(let i=0;i<codes.length;i++){ const c=document.createElement('col'); c.className='c-code'; cg1.appendChild(c); }
+    table1.appendChild(cg1);
+
+    const thead1=document.createElement('thead');
+    const trA=document.createElement('tr');
+    ["Imię i nazwisko", ...codes].forEach((t,idx)=>{
+      const th=document.createElement('th');
+      th.textContent=t;
+      if(idx>0) th.className='sumc';
+      trA.appendChild(th);
+    });
+    thead1.appendChild(trA);
+    table1.appendChild(thead1);
+
+    const tbody1=document.createElement('tbody');
+    for(const emp of employees){
+      const c = absenceCountsForEmp(emp);
+      const tr=document.createElement('tr');
+      if(selectedAbsenceEmp===emp) tr.classList.add('active-emp-row');
+
+      const tdN=document.createElement('td');
+      tdN.className="name";
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='emp-toggle' + (selectedAbsenceEmp===emp ? ' active' : '');
+      btn.textContent=emp;
+      btn.title='Pokaż / ukryj listę terminów dla pracownika';
+      btn.addEventListener('click', ()=>{
+        selectedAbsenceEmp = (selectedAbsenceEmp===emp) ? null : emp;
+        render();
+      });
+      tdN.appendChild(btn);
+      tr.appendChild(tdN);
+
+      codes.forEach(code=>{
+        const td=document.createElement('td');
+        td.className="sum";
+        const val = c[code] || 0;
+        const cls = val ? getCodeStatusClass(code) : 'warn';
+        td.innerHTML = `<span class="saldo ${cls}">${val}</span>`;
+        tr.appendChild(td);
+      });
+
+      tbody1.appendChild(tr);
+    }
+    table1.appendChild(tbody1);
+    mb1.appendChild(table1);
+    host.appendChild(mb1);
+
+    const mb2 = document.createElement('div');
+    mb2.className="monthblock";
+    mb2.style.marginTop = "12px";
+
+    const filteredEntries = selectedAbsenceEmp ? allEntries.filter(e=>e.emp===selectedAbsenceEmp) : [];
+    const bh2 = document.createElement('div');
+    bh2.className="blockhead";
+    if(selectedAbsenceEmp){
+      bh2.innerHTML = `<div><b>Lista terminów</b> • ${selectedAbsenceEmp}</div><div>${filteredEntries.length} wpisów</div>`;
+    } else {
+      bh2.innerHTML = `<div><b>Lista terminów</b> • kliknij imię i nazwisko powyżej</div><div>ukryte</div>`;
+    }
+    mb2.appendChild(bh2);
+
+    if(!selectedAbsenceEmp){
+      const empty=document.createElement('div');
+      empty.className='absence-empty';
+      empty.textContent=`Wybierz pracownika w tabeli powyżej, aby zobaczyć jego terminy ${codes.join(' / ')} z całego roku.`;
+      mb2.appendChild(empty);
+      host.appendChild(mb2);
+      els.tableWrap.innerHTML="";
+      els.tableWrap.appendChild(host);
+      return;
+    }
+
+    const table2=document.createElement('table');
+    table2.className='absence-list-table';
+    const cg2=document.createElement('colgroup');
+    ;['c-date','c-day','c-name','c-code','c-desc'].forEach(cl=>{ const c=document.createElement('col'); c.className=cl; cg2.appendChild(c); });
+    table2.appendChild(cg2);
+
+    const thead2=document.createElement('thead');
+    const trB=document.createElement('tr');
+    ["Data","Dzień","Imię i nazwisko","Kod","Opis"].forEach((t,idx)=>{
+      const th=document.createElement('th');
+      th.textContent=t;
+      if(idx===1 || idx===3) th.className='sumc';
+      trB.appendChild(th);
+    });
+    thead2.appendChild(trB);
+    table2.appendChild(thead2);
+
+    const tbody2=document.createElement('tbody');
+    if(filteredEntries.length){
+      filteredEntries.forEach(e=>{
+        const tr=document.createElement('tr');
+        const tdD=document.createElement('td'); tdD.className="sum"; tdD.textContent=e.label; tr.appendChild(tdD);
+        const tdW=document.createElement('td'); tdW.className="sum"; tdW.style.textAlign='center'; tdW.textContent=e.weekday; tr.appendChild(tdW);
+        const tdE=document.createElement('td'); tdE.className="name"; tdE.innerHTML=`<b>${e.emp}</b>`; tr.appendChild(tdE);
+        const tdC=document.createElement('td'); tdC.className="sum"; tdC.style.textAlign='center'; tdC.innerHTML=`<span class="status ${getCodeStatusClass(e.code)}">${e.code}</span>`; tr.appendChild(tdC);
+        const tdO=document.createElement('td'); tdO.textContent=getCodeLabel(e.code); tr.appendChild(tdO);
+        tbody2.appendChild(tr);
+      });
+    } else {
+      const tr=document.createElement('tr');
+      const td=document.createElement('td');
+      td.colSpan=5;
+      td.style.padding='14px';
+      td.style.color='var(--muted)';
+      td.textContent=`Brak wpisanych kodów ${codes.join(' / ')} dla wybranego pracownika.`;
+      tr.appendChild(td);
+      tbody2.appendChild(tr);
+    }
+    table2.appendChild(tbody2);
+    mb2.appendChild(table2);
+    host.appendChild(mb2);
+
+    els.tableWrap.innerHTML="";
+    els.tableWrap.appendChild(host);
+  }
+
+  async function buildPeriodSummaryData(){
+    const results = {};
+    YEARS.forEach(y=>{
+      results[y] = {};
+      employees.forEach(emp=>{ results[y][emp] = 0; });
+    });
+
+    const sourceByYear = {};
+    sourceByYear[currentYear] = normalizeState(state);
+
+    for(const y of YEARS){
+      if(y === currentYear) continue;
+      try{
+        if(db && currentUser){
+          const snap = await db.ref(YEAR_DB_PATH(y)).once('value');
+          const raw = snap.val();
+          sourceByYear[y] = raw ? normalizeState(raw) : defaultState();
+          sourceByYear[y].year = y;
+        } else {
+          sourceByYear[y] = defaultState();
+          sourceByYear[y].year = y;
+        }
+      }catch(e){
+        console.error(e);
+        sourceByYear[y] = defaultState();
+        sourceByYear[y].year = y;
+      }
+    }
+
+    for(const y of YEARS){
+      const ys = sourceByYear[y] || defaultState();
+      for(const emp of employees){
+        let saldo = 0;
+        for(let m=1;m<=12;m++){
+          const dim = daysInMonth(y,m);
+          const arr = (ys.months && ys.months[m] && ys.months[m][emp]) ? ys.months[m][emp] : Array(31).fill("");
+          for(let d=1; d<=dim; d++) saldo += parseNum(arr[d-1]);
+        }
+        results[y][emp] = saldo;
+      }
+    }
+    return results;
+  }
+
+  async function renderPeriodSummary(){
+    els.mainTitle.textContent = `Podsumowanie całego okresu ${YEARS[0]}–${YEARS[YEARS.length-1]}`;
+    setMonthPreview();
+    const loading = document.createElement('div');
+    loading.className='monthblock';
+    loading.innerHTML = `<div class="blockhead"><div><b>Podsumowanie całego okresu</b></div><div>ładowanie danych…</div></div><div style="padding:16px;color:var(--muted)">Pobieram salda dla wszystkich lat ${YEARS[0]}–${YEARS[YEARS.length-1]}.</div>`;
+    els.tableWrap.innerHTML='';
+    els.tableWrap.appendChild(loading);
+
+    const data = await buildPeriodSummaryData();
+
+    const mb = document.createElement('div');
+    mb.className='monthblock';
+    const bh = document.createElement('div');
+    bh.className='blockhead';
+    bh.innerHTML = `<div><b>Podsumowanie całego okresu</b> • tylko odczyt</div><div>saldo z lat ${YEARS[0]}–${YEARS[YEARS.length-1]}</div>`;
+    mb.appendChild(bh);
+
+    const table=document.createElement('table');
+    table.className='year-summary-table';
+    const thead=document.createElement('thead');
+    const tr1=document.createElement('tr');
+    ['Imię i nazwisko', ...YEARS.map(String), 'Saldo (całość)', 'Status'].forEach((t,idx)=>{
+      const th=document.createElement('th');
+      th.textContent=t;
+      if(idx>0) th.className='sumc';
+      tr1.appendChild(th);
+    });
+    thead.appendChild(tr1);
+    table.appendChild(thead);
+
+    const tbody=document.createElement('tbody');
+    for(const emp of employees){
+      let total = 0;
+      const tr=document.createElement('tr');
+      const tdN=document.createElement('td'); tdN.className='name'; tdN.innerHTML=`<b>${emp}</b>`; tr.appendChild(tdN);
+      YEARS.forEach(y=>{
+        const val = Number((data[y] && data[y][emp]) || 0);
+        total += val;
+        const td=document.createElement('td'); td.className='sum';
+        const cls = clsFromStatus(statusFromSaldo(val));
+        td.innerHTML = `<span class="saldo ${cls}">${fmt(val)}</span>`;
+        tr.appendChild(td);
+      });
+      const totalStatus = statusFromSaldo(total);
+      const totalCls = clsFromStatus(totalStatus);
+      const tdT=document.createElement('td'); tdT.className='sum'; tdT.innerHTML=`<span class="saldo ${totalCls}">${fmt(total)}</span>`; tr.appendChild(tdT);
+      const tdS=document.createElement('td'); tdS.className='sum'; tdS.innerHTML=`<span class="status ${totalCls}">${totalStatus}</span>`; tr.appendChild(tdS);
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    mb.appendChild(table);
+
+    els.tableWrap.innerHTML='';
+    els.tableWrap.appendChild(mb);
   }
 
   function buildMonths(){
@@ -2536,6 +3035,7 @@ if(typed !== phrase){
     buildMonths();
     if(currentView==="month") renderMonth();
     else if(currentView==="summary_absences") renderAbsenceSummary();
+    else if(currentView==="summary_period") renderPeriodSummary();
     else renderSummary();
   }
 
