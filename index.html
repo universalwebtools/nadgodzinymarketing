@@ -68,7 +68,9 @@
       display:flex;align-items:center;gap:8px;
       padding:10px 12px;border-radius:14px;border:1px solid var(--line);
       background:rgba(255,255,255,.06);
+      min-height:52px;
     }
+    #yearSel,#adminLockYearSel{min-width:110px}
     select, button{
       font:inherit; color:var(--text);
       background:rgba(255,255,255,.06);
@@ -135,8 +137,21 @@
       box-shadow:0 0 10px rgba(110,168,255,.18);
       pointer-events:none;
     }
-    /* Jeżeli miesiąc jest zamknięty — pokaż kłódkę zamiast napisu "EDYCJA" */
-    .mbtn.active.locked::after{content:"🔒"; padding:2px 8px}
+    /* Jeżeli miesiąc jest zamknięty — pokaż mocne oznaczenie na kafelku */
+    .mbtn.active.locked::after{content:"🔒 ZAMKNIĘTY"; padding:2px 10px; color:#fff2c7; border-color:rgba(255,196,82,.62); background:rgba(70,40,0,.96)}
+    .mbtn.locked{
+      border-color:rgba(255,196,82,.58);
+      background:linear-gradient(180deg, rgba(140,96,12,.38), rgba(94,58,0,.22));
+      box-shadow:inset 0 0 0 1px rgba(255,196,82,.20), 0 0 0 1px rgba(255,196,82,.12);
+    }
+    .mbtn.locked:hover{border-color:rgba(255,206,112,.82); background:linear-gradient(180deg, rgba(158,108,15,.42), rgba(110,66,0,.28))}
+    .mbtn.locked .lock-state{
+      display:inline-flex; align-items:center; gap:6px;
+      font-size:11px; font-weight:900; letter-spacing:.35px;
+      color:#fff2c7; padding:4px 8px; border-radius:999px;
+      border:1px solid rgba(255,196,82,.58); background:rgba(70,40,0,.88);
+      box-shadow:0 0 12px rgba(255,196,82,.14); white-space:nowrap;
+    }
     @keyframes activeMonthPulse{
       0%,100%{
         box-shadow:
@@ -440,7 +455,7 @@
 
       <div class="mainhead">
         <h3 id="mainTitle">Styczeń 2026</h3>
-        <div style="font-size:12px;color:var(--muted)">zielone: nadgodziny • czerwone: do odrobienia • żółte: OK • kody: U/O/L4/UT</div>
+        <div style="font-size:12px;color:var(--muted)">zielone: nadgodziny • czerwone: do odrobienia • żółte: OK • kody: U/O/L4/UT/T/Z</div>
       </div>
 
       <div class="tablewrap" id="tableWrap"></div>
@@ -619,8 +634,8 @@
         </div>
 
         <div style="margin-bottom:10px">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Wpis (np. U, L4, O, UT, 2, -5, 0,5)</div>
-          <input id="bulkVal" class="in" type="text" placeholder="U / L4 / 2 / -5" style="text-align:left;padding-left:10px" />
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Wpis (np. U, L4, O, UT, T, Z, 2, -5, 0,5)</div>
+          <input id="bulkVal" class="in" type="text" placeholder="U / L4 / O / UT / T / Z / 2 / -5" style="text-align:left;padding-left:10px" />
         </div>
 
         <div style="font-size:12px;color:var(--muted)">
@@ -975,6 +990,96 @@ function normalizeCellValue(val){
   function isMonthLocked(m){
     return !!(state.settings && (state.settings.yearLocked || (state.settings.monthLocks && state.settings.monthLocks[m])));
   }
+  function sanitizeYearSettings(raw){
+    const def = defaultState().settings;
+    const src = (raw && typeof raw === 'object') ? raw : {};
+    const out = {
+      holidaysEnabled: typeof src.holidaysEnabled === 'boolean' ? src.holidaysEnabled : def.holidaysEnabled,
+      codeColors: Object.assign({}, def.codeColors, (src.codeColors && typeof src.codeColors === 'object') ? src.codeColors : {}),
+      yearLocked: !!src.yearLocked,
+      monthLocks: {}
+    };
+    const ml = (src.monthLocks && typeof src.monthLocks === 'object') ? src.monthLocks : {};
+    for(let mm=1; mm<=12; mm++) out.monthLocks[mm] = !!ml[mm];
+    return out;
+  }
+  function getAdminLockSettings(year){
+    const y = Number(year);
+    if(y === currentYear) return sanitizeYearSettings(state.settings);
+    if(!adminLockSettingsCache[y]) adminLockSettingsCache[y] = sanitizeYearSettings(null);
+    return sanitizeYearSettings(adminLockSettingsCache[y]);
+  }
+  async function loadAdminLockYearSettings(year){
+    const y = Number(year);
+    adminLockYear = YEARS.includes(y) ? y : currentYear;
+    if(y === currentYear){
+      renderAdminLockControls();
+      return;
+    }
+    if(db && currentUser){
+      try{
+        const snap = await db.ref(`${YEAR_DB_PATH(y)}/settings`).once('value');
+        adminLockSettingsCache[y] = sanitizeYearSettings(snap.val());
+      }catch(e){
+        console.error(e);
+        adminLockSettingsCache[y] = sanitizeYearSettings(null);
+      }
+    }
+    renderAdminLockControls();
+  }
+  function renderAdminLockControls(){
+    const on = isAdmin();
+    const ys = getAdminLockSettings(adminLockYear);
+    if(els.adminLockYearSel){
+      els.adminLockYearSel.innerHTML = YEARS.map(y=>`<option value="${y}" ${y===adminLockYear?'selected':''}>${y}</option>`).join('');
+      els.adminLockYearSel.disabled = !on;
+    }
+    if(els.adminYearLockChk){
+      els.adminYearLockChk.checked = !!ys.yearLocked;
+      els.adminYearLockChk.disabled = !on;
+    }
+    if(els.adminLocksList){
+      els.adminLocksList.innerHTML = "";
+      for(let mm=1; mm<=12; mm++){
+        const row = document.createElement('div');
+        row.className = 'admin-check';
+        row.style.justifyContent = 'space-between';
+        const name = document.createElement('div');
+        name.textContent = `${monthNames[mm-1]} ${adminLockYear}`;
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.style.width='18px';
+        cb.style.height='18px';
+        cb.style.accentColor='#5aa7ff';
+        cb.checked = !!ys.monthLocks[mm];
+        cb.disabled = !on || !!ys.yearLocked;
+        cb.addEventListener('change', async ()=>{
+          if(!isAdmin()) return;
+          const next = getAdminLockSettings(adminLockYear);
+          next.monthLocks[mm] = !!cb.checked;
+          if(adminLockYear === currentYear){
+            state.settings = sanitizeYearSettings(Object.assign({}, state.settings, next));
+            state.updatedAt = Date.now();
+            render();
+            if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = 'Niezapisane zmiany…';
+          } else {
+            adminLockSettingsCache[adminLockYear] = next;
+            try{
+              await db.ref(`${YEAR_DB_PATH(adminLockYear)}/settings`).update({ monthLocks: next.monthLocks, yearLocked: next.yearLocked });
+              if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = `Zapisano blokady dla roku ${adminLockYear} ✅`;
+            }catch(e){
+              console.error(e);
+              if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = `Błąd zapisu roku ${adminLockYear}`;
+            }
+          }
+          renderAdminLockControls();
+        });
+        row.appendChild(name);
+        row.appendChild(cb);
+        els.adminLocksList.appendChild(row);
+      }
+    }
+  }
 
   function defaultState(){
     const employees = sortEmployees(defaultEmployees);
@@ -1047,6 +1152,8 @@ function normalizeCellValue(val){
   let currentMonth = 1;
   let currentView = "month";
   let selectedAbsenceEmp = null;
+  let adminLockYear = currentYear;
+  let adminLockSettingsCache = {};
 
   // ====== Firebase ======
   let app = null;
@@ -1359,42 +1466,7 @@ function normalizeCellValue(val){
     setPicker(els.adminColorT, cc.T);
     setPicker(els.adminColorZ, cc.Z);
     if(els.adminResetColors) els.adminResetColors.disabled = !on;
-    if(els.adminLockYearSel){ els.adminLockYearSel.innerHTML = YEARS.map(y=>`<option value="${y}" ${y===currentYear?'selected':''}>${y}</option>`).join(''); els.adminLockYearSel.disabled = !on; }
-    if(els.adminYearLockChk){ els.adminYearLockChk.checked = !!(state.settings && state.settings.yearLocked); els.adminYearLockChk.disabled = !on; }
-    if(els.adminLocksList){
-      els.adminLocksList.innerHTML = "";
-      state.settings = state.settings || {};
-      state.settings.monthLocks = state.settings.monthLocks || {};
-      for(let mm=1; mm<=12; mm++){
-        const row = document.createElement('div');
-        row.className = 'admin-check';
-        row.style.justifyContent = 'space-between';
-
-        const name = document.createElement('div');
-        name.textContent = monthNames[mm-1];
-
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.style.width='18px';
-        cb.style.height='18px';
-        cb.style.accentColor='#5aa7ff';
-        cb.checked = !!state.settings.monthLocks[mm];
-        cb.disabled = !on;
-        cb.addEventListener('change', ()=>{
-          if(!isAdmin()) return;
-          state.settings = state.settings || {};
-          state.settings.monthLocks = state.settings.monthLocks || {};
-          state.settings.monthLocks[mm] = !!cb.checked;
-          state.updatedAt = Date.now();
-          render(); // podgląd (bez zapisu)
-          if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = 'Niezapisane zmiany…';
-        });
-
-        row.appendChild(name);
-        row.appendChild(cb);
-        els.adminLocksList.appendChild(row);
-      }
-    }
+    renderAdminLockControls();
   
     updateSecurityStatusUI();
 }
@@ -1605,11 +1677,15 @@ if(typed !== phrase){
           return;
         }
 
-        sharedSettings.adminPassword = newP;
-        if(els.secAdminMsg) els.secAdminMsg.textContent = "Zmieniono hasło admina ✅";
-        els.secAdminOld.value = ""; els.secAdminNew.value = ""; els.secAdminNew2.value = "";
-        // Persist immediately
-        try{ await saveSharedSettings(true); }catch(e){}
+        try{
+          await sharedRef.child('adminPassword').set(newP);
+          sharedSettings.adminPassword = newP;
+          if(els.secAdminMsg) els.secAdminMsg.textContent = "Zmieniono hasło admina ✅";
+          els.secAdminOld.value = ""; els.secAdminNew.value = ""; els.secAdminNew2.value = "";
+        }catch(e){
+          console.error(e);
+          if(els.secAdminMsg) els.secAdminMsg.textContent = "Błąd zapisu nowego hasła admina.";
+        }
       });
     }
 
@@ -1960,6 +2036,7 @@ if(typed !== phrase){
     els.fbLoginBtn.addEventListener('click', async () => {
       if (!auth) {
         populateYearSelectors();
+  loadAdminLockYearSettings(adminLockYear);
   initFirebase();
         return;
       }
@@ -2062,7 +2139,7 @@ if(typed !== phrase){
   }
 
   function absenceCountsForEmp(emp){
-    const counts = { U:0, O:0, L4:0, UT:0, total:0 };
+    const counts = { U:0, O:0, L4:0, UT:0, T:0, Z:0, total:0 };
     for(let m=1;m<=12;m++){
       const dim = daysInMonth(currentYear,m);
       const arr = (state.months[m] && state.months[m][emp]) ? state.months[m][emp] : Array(31).fill("");
@@ -2085,7 +2162,7 @@ if(typed !== phrase){
       const locked = isMonthLocked(m);
       btn.className = "mbtn" + (m===currentMonth && currentView==="month" ? " active":"") + (locked ? " locked":"");
       btn.type="button";
-      btn.innerHTML = `<span><b>${monthNames[m-1]} ${currentYear}</b></span>`;
+      btn.innerHTML = `<span><b>${monthNames[m-1]} ${currentYear}</b></span>${locked ? `<span class="lock-state">🔒 ZAMKNIĘTY</span>` : ``}`;
       btn.addEventListener('click', ()=>{
         currentMonth = m;
         currentView = "month";
@@ -2320,7 +2397,7 @@ if(typed !== phrase){
     mb1.className="monthblock";
     const bh1 = document.createElement('div');
     bh1.className="blockhead";
-    bh1.innerHTML = `<div><b>Podsumowanie urlopów / nieobecności</b> • tylko odczyt • kliknij pracownika, aby rozwinąć listę terminów</div><div>Kody: U, O, L4, UT</div>`;
+    bh1.innerHTML = `<div><b>Podsumowanie urlopów / nieobecności</b> • tylko odczyt • kliknij pracownika, aby rozwinąć listę terminów</div><div>Kody: U, O, L4, UT, T, Z</div>`;
     mb1.appendChild(bh1);
 
     const table1=document.createElement('table');
@@ -2393,7 +2470,7 @@ if(typed !== phrase){
     if(!selectedAbsenceEmp){
       const empty=document.createElement('div');
       empty.className='absence-empty';
-      empty.textContent='Wybierz pracownika w tabeli powyżej, aby zobaczyć jego terminy U / O / L4 / UT z całego roku.';
+      empty.textContent='Wybierz pracownika w tabeli powyżej, aby zobaczyć jego terminy U / O / L4 / UT / T / Z z całego roku.';
       mb2.appendChild(empty);
       host.appendChild(mb2);
       els.tableWrap.innerHTML="";
@@ -2420,8 +2497,8 @@ if(typed !== phrase){
 
     const tbody2=document.createElement('tbody');
     if(filteredEntries.length){
-      const codeLabels = { U:"Urlop", O:"Opieka", L4:"L4", UT:"Urlop za targi" };
-      const statusClsByCode = { U:"good", O:"warn", L4:"bad", UT:"good" };
+      const codeLabels = { U:"Urlop", O:"Odbiór / oddanie", L4:"L4", UT:"Urlop / inny kod", T:"Targi", Z:"Zdalnie" };
+      const statusClsByCode = { U:"good", O:"warn", L4:"bad", UT:"good", T:"warn", Z:"good" };
       filteredEntries.forEach(e=>{
         const tr=document.createElement('tr');
         const tdD=document.createElement('td'); tdD.className="sum"; tdD.textContent=e.label; tr.appendChild(tdD);
@@ -2437,7 +2514,7 @@ if(typed !== phrase){
       td.colSpan=5;
       td.style.padding='14px';
       td.style.color='var(--muted)';
-      td.textContent='Brak wpisanych kodów U / O / L4 / UT dla wybranego pracownika.';
+      td.textContent='Brak wpisanych kodów U / O / L4 / UT / T / Z dla wybranego pracownika.';
       tr.appendChild(td);
       tbody2.appendChild(tr);
     }
@@ -2460,7 +2537,7 @@ if(typed !== phrase){
 
   function populateYearSelectors(){
     if(els.yearSel) els.yearSel.innerHTML = YEARS.map(y=>`<option value="${y}" ${y===currentYear?'selected':''}>${y}</option>`).join('');
-    if(els.adminLockYearSel) els.adminLockYearSel.innerHTML = YEARS.map(y=>`<option value="${y}" ${y===currentYear?'selected':''}>${y}</option>`).join('');
+    if(els.adminLockYearSel) els.adminLockYearSel.innerHTML = YEARS.map(y=>`<option value="${y}" ${y===adminLockYear?'selected':''}>${y}</option>`).join('');
   }
   async function switchYear(year){
     year = Number(year);
@@ -2474,18 +2551,34 @@ if(typed !== phrase){
     dbRef = db ? db.ref(YEAR_DB_PATH(currentYear)) : null;
     state = defaultState();
     employees = state.employees.slice();
+    adminLockYear = currentYear;
     populateYearSelectors();
     render();
     if(currentUser && dbRef) subscribeRemote();
+    if(isAdmin()) renderAdminLockControls();
   }
   if(els.yearSel) els.yearSel.addEventListener('change', (e)=> switchYear(e.target.value));
-  if(els.adminLockYearSel) els.adminLockYearSel.addEventListener('change', (e)=> switchYear(e.target.value));
-  if(els.adminYearLockChk) els.adminYearLockChk.addEventListener('change', ()=>{
+  if(els.adminLockYearSel) els.adminLockYearSel.addEventListener('change', (e)=> loadAdminLockYearSettings(e.target.value));
+  if(els.adminYearLockChk) els.adminYearLockChk.addEventListener('change', async ()=>{
     if(!isAdmin()) return;
-    state.settings.yearLocked = !!els.adminYearLockChk.checked;
-    if(state.settings.yearLocked){ for(let mm=1; mm<=12; mm++) state.settings.monthLocks[mm]=true; }
-    render();
-    if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = 'Niezapisane zmiany…';
+    const next = getAdminLockSettings(adminLockYear);
+    next.yearLocked = !!els.adminYearLockChk.checked;
+    if(next.yearLocked){ for(let mm=1; mm<=12; mm++) next.monthLocks[mm]=true; }
+    if(adminLockYear === currentYear){
+      state.settings = sanitizeYearSettings(Object.assign({}, state.settings, next));
+      render();
+      if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = 'Niezapisane zmiany…';
+    } else {
+      adminLockSettingsCache[adminLockYear] = next;
+      try{
+        await db.ref(`${YEAR_DB_PATH(adminLockYear)}/settings`).update({ yearLocked: next.yearLocked, monthLocks: next.monthLocks });
+        if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = `Zapisano blokady dla roku ${adminLockYear} ✅`;
+      }catch(e){
+        console.error(e);
+        if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = `Błąd zapisu roku ${adminLockYear}`;
+      }
+    }
+    renderAdminLockControls();
   });
   els.viewSel.addEventListener('change', ()=>{
     currentView = els.viewSel.value;
