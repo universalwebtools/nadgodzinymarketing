@@ -26,6 +26,10 @@
       --code-l4-border: rgba(214,89,49,.52);
       --code-ut-bg: rgba(31,143,78,.16);
       --code-ut-border: rgba(31,143,78,.45);
+      --code-t-bg: rgba(255,179,71,.18);
+      --code-t-border: rgba(255,179,71,.50);
+      --code-z-bg: rgba(70,130,180,.18);
+      --code-z-border: rgba(70,130,180,.50);
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -229,8 +233,8 @@
     .in.code-o{background:var(--code-o-bg); border-color:var(--code-o-border); color:#efe5ff; font-weight:800}
     .in.code-l4{background:var(--code-l4-bg); border-color:var(--code-l4-border); color:#ffe7dc; font-weight:800}
     .in.code-ut{background:var(--code-ut-bg); border-color:var(--code-ut-border); color:#ddffea; font-weight:800}
-    .in.code-t{background:rgba(255,179,71,.18); border-color:rgba(255,179,71,.50); color:#fff0cf; font-weight:800}
-    .in.code-z{background:rgba(70,130,180,.18); border-color:rgba(70,130,180,.50); color:#ddeeff; font-weight:800}
+    .in.code-t{background:var(--code-t-bg); border-color:var(--code-t-border); color:#fff0cf; font-weight:800}
+    .in.code-z{background:var(--code-z-bg); border-color:var(--code-z-border); color:#ddeeff; font-weight:800}
     .in.num-pos{background:rgba(31,143,78,.14); border-color:rgba(31,143,78,.42); color:#ddffea; font-weight:800}
     .in.num-neg{background:rgba(198,40,40,.14); border-color:rgba(198,40,40,.42); color:#ffd8d8; font-weight:800}
 
@@ -865,6 +869,26 @@
   function getCodeStatusClass(code){
     return (CODE_META[code] && CODE_META[code].cls) ? CODE_META[code].cls : 'warn';
   }
+  function getCodeColorHex(code){
+    const cc = (state && state.settings && state.settings.codeColors && typeof state.settings.codeColors === 'object')
+      ? state.settings.codeColors
+      : defaultState().settings.codeColors;
+    return (cc && cc[code]) ? cc[code] : null;
+  }
+  function getReadableTextColor(rgb){
+    if(!rgb) return 'var(--text)';
+    const lum = (0.2126*rgb.r + 0.7152*rgb.g + 0.0722*rgb.b) / 255;
+    return lum > 0.62 ? '#101622' : '#f6fbff';
+  }
+  function getCodeBadgeStyle(code, active=true){
+    const hex = getCodeColorHex(code);
+    const rgb = hexToRgb(hex);
+    if(!rgb) return '';
+    const bg = rgba(rgb, active ? 0.26 : 0.12);
+    const bd = rgba(rgb, active ? 0.62 : 0.34);
+    const fg = getReadableTextColor(rgb);
+    return `background:${bg};border-color:${bd};color:${fg};`;
+  }
   function isTrackedCode(v){
     return getTrackedCodes().includes(v);
   }
@@ -1004,14 +1028,16 @@ function normalizeCellValue(val){
       O: ['--code-o-bg','--code-o-border'],
       L4: ['--code-l4-bg','--code-l4-border'],
       UT: ['--code-ut-bg','--code-ut-border'],
+      T: ['--code-t-bg','--code-t-border'],
+      Z: ['--code-z-bg','--code-z-border'],
     };
     Object.keys(map).forEach((k)=>{
       const rgb = hexToRgb(cc[k]);
       if(!rgb) return;
       const [bgVar, borderVar] = map[k];
       // tła i obramowania jak w oryginale
-      const bgA = (k==='UT') ? 0.16 : (k==='L4') ? 0.20 : 0.22;
-      const bdA = (k==='UT') ? 0.45 : (k==='L4') ? 0.52 : 0.55;
+      const bgA = (k==='UT') ? 0.16 : (k==='L4') ? 0.20 : ((k==='T' || k==='Z') ? 0.18 : 0.22);
+      const bdA = (k==='UT') ? 0.45 : (k==='L4') ? 0.52 : ((k==='T' || k==='Z') ? 0.50 : 0.55);
       document.documentElement.style.setProperty(bgVar, rgba(rgb, bgA));
       document.documentElement.style.setProperty(borderVar, rgba(rgb, bdA));
     });
@@ -2480,7 +2506,8 @@ if(typed !== phrase){
         td.className="sum";
         const val = c[code] || 0;
         const cls = val ? getCodeStatusClass(code) : 'warn';
-        td.innerHTML = `<span class="saldo ${cls}">${val}</span>`;
+        const style = getCodeBadgeStyle(code, val > 0);
+        td.innerHTML = `<span class="saldo ${cls}" style="${style}">${val}</span>`;
         tr.appendChild(td);
       });
 
@@ -2539,7 +2566,7 @@ if(typed !== phrase){
         const tdD=document.createElement('td'); tdD.className="sum"; tdD.textContent=e.label; tr.appendChild(tdD);
         const tdW=document.createElement('td'); tdW.className="sum"; tdW.style.textAlign='center'; tdW.textContent=e.weekday; tr.appendChild(tdW);
         const tdE=document.createElement('td'); tdE.className="name"; tdE.innerHTML=`<b>${e.emp}</b>`; tr.appendChild(tdE);
-        const tdC=document.createElement('td'); tdC.className="sum"; tdC.style.textAlign='center'; tdC.innerHTML=`<span class="status ${getCodeStatusClass(e.code)}">${e.code}</span>`; tr.appendChild(tdC);
+        const tdC=document.createElement('td'); tdC.className="sum"; tdC.style.textAlign='center'; tdC.innerHTML=`<span class="status ${getCodeStatusClass(e.code)}" style="${getCodeBadgeStyle(e.code, true)}">${e.code}</span>`; tr.appendChild(tdC);
         const tdO=document.createElement('td'); tdO.textContent=getCodeLabel(e.code); tr.appendChild(tdO);
         tbody2.appendChild(tr);
       });
@@ -2966,7 +2993,8 @@ if(typed !== phrase){
         td.className="sum";
         const val = c[code] || 0;
         const cls = val ? getCodeStatusClass(code) : 'warn';
-        td.innerHTML = `<span class="saldo ${cls}">${val}</span>`;
+        const style = getCodeBadgeStyle(code, val > 0);
+        td.innerHTML = `<span class="saldo ${cls}" style="${style}">${val}</span>`;
         tr.appendChild(td);
       });
 
@@ -3025,7 +3053,7 @@ if(typed !== phrase){
         const tdD=document.createElement('td'); tdD.className="sum"; tdD.textContent=e.label; tr.appendChild(tdD);
         const tdW=document.createElement('td'); tdW.className="sum"; tdW.style.textAlign='center'; tdW.textContent=e.weekday; tr.appendChild(tdW);
         const tdE=document.createElement('td'); tdE.className="name"; tdE.innerHTML=`<b>${e.emp}</b>`; tr.appendChild(tdE);
-        const tdC=document.createElement('td'); tdC.className="sum"; tdC.style.textAlign='center'; tdC.innerHTML=`<span class="status ${getCodeStatusClass(e.code)}">${e.code}</span>`; tr.appendChild(tdC);
+        const tdC=document.createElement('td'); tdC.className="sum"; tdC.style.textAlign='center'; tdC.innerHTML=`<span class="status ${getCodeStatusClass(e.code)}" style="${getCodeBadgeStyle(e.code, true)}">${e.code}</span>`; tr.appendChild(tdC);
         const tdO=document.createElement('td'); tdO.textContent=getCodeLabel(e.code); tr.appendChild(tdO);
         tbody2.appendChild(tr);
       });
