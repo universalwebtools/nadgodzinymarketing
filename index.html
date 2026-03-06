@@ -2904,6 +2904,7 @@ if(typed !== phrase){
 
 
   function renderAbsenceSummary(){
+    const codes = getTrackedCodes();
     els.mainTitle.textContent = `Podsumowanie urlopy ${currentYear}`;
     setMonthPreview();
 
@@ -2914,19 +2915,24 @@ if(typed !== phrase){
     mb1.className="monthblock";
     const bh1 = document.createElement('div');
     bh1.className="blockhead";
-    bh1.innerHTML = `<div><b>Podsumowanie urlopów / nieobecności</b> • tylko odczyt • kliknij pracownika, aby rozwinąć listę terminów</div><div>Kody: U, O, L4, UT, T, Z</div>`;
+    bh1.innerHTML = `<div><b>Podsumowanie urlopów / nieobecności</b> • tylko odczyt • kliknij pracownika, aby rozwinąć listę terminów</div><div>Kody: ${codes.join(', ')}</div>`;
     mb1.appendChild(bh1);
 
     const table1=document.createElement('table');
     table1.className = 'absence-summary-table';
     const cg1=document.createElement('colgroup');
-    const c1n=document.createElement('col'); c1n.className='c-name'; cg1.appendChild(c1n);
-    for(let i=0;i<4;i++){ const c=document.createElement('col'); c.className='c-code'; cg1.appendChild(c); }
+    const c1n=document.createElement('col');
+    const codeCount = Math.max(1, codes.length);
+    const nameWidth = codeCount <= 4 ? 44 : (codeCount <= 6 ? 34 : 30);
+    const codeWidth = (100 - nameWidth) / codeCount;
+    c1n.style.width = `${nameWidth}%`;
+    cg1.appendChild(c1n);
+    for(let i=0;i<codes.length;i++){ const c=document.createElement('col'); c.style.width = `${codeWidth}%`; cg1.appendChild(c); }
     table1.appendChild(cg1);
 
     const thead1=document.createElement('thead');
     const trA=document.createElement('tr');
-    ["Imię i nazwisko","U","O","L4","UT","T","Z"].forEach((t,idx)=>{
+    ["Imię i nazwisko", ...codes].forEach((t,idx)=>{
       const th=document.createElement('th');
       th.textContent=t;
       if(idx>0) th.className='sumc';
@@ -2955,11 +2961,11 @@ if(typed !== phrase){
       tdN.appendChild(btn);
       tr.appendChild(tdN);
 
-      ["U","O","L4","UT","T","Z"].forEach(code=>{
+      codes.forEach(code=>{
         const td=document.createElement('td');
         td.className="sum";
         const val = c[code] || 0;
-        const cls = val ? (code==='L4' ? 'bad' : 'good') : 'warn';
+        const cls = val ? getCodeStatusClass(code) : 'warn';
         td.innerHTML = `<span class="saldo ${cls}">${val}</span>`;
         tr.appendChild(td);
       });
@@ -2987,7 +2993,7 @@ if(typed !== phrase){
     if(!selectedAbsenceEmp){
       const empty=document.createElement('div');
       empty.className='absence-empty';
-      empty.textContent='Wybierz pracownika w tabeli powyżej, aby zobaczyć jego terminy U / O / L4 / UT / T / Z z całego roku.';
+      empty.textContent=`Wybierz pracownika w tabeli powyżej, aby zobaczyć jego terminy ${codes.join(' / ')} z całego roku.`;
       mb2.appendChild(empty);
       host.appendChild(mb2);
       els.tableWrap.innerHTML="";
@@ -3014,15 +3020,13 @@ if(typed !== phrase){
 
     const tbody2=document.createElement('tbody');
     if(filteredEntries.length){
-      const codeLabels = { U:"Urlop", O:"Odbiór / oddanie", L4:"L4", UT:"Urlop / inny kod", T:"Targi", Z:"Zdalnie" };
-      const statusClsByCode = { U:"good", O:"warn", L4:"bad", UT:"good", T:"warn", Z:"good" };
       filteredEntries.forEach(e=>{
         const tr=document.createElement('tr');
         const tdD=document.createElement('td'); tdD.className="sum"; tdD.textContent=e.label; tr.appendChild(tdD);
         const tdW=document.createElement('td'); tdW.className="sum"; tdW.style.textAlign='center'; tdW.textContent=e.weekday; tr.appendChild(tdW);
         const tdE=document.createElement('td'); tdE.className="name"; tdE.innerHTML=`<b>${e.emp}</b>`; tr.appendChild(tdE);
-        const tdC=document.createElement('td'); tdC.className="sum"; tdC.style.textAlign='center'; tdC.innerHTML=`<span class="status ${statusClsByCode[e.code] || 'warn'}">${e.code}</span>`; tr.appendChild(tdC);
-        const tdO=document.createElement('td'); tdO.textContent=codeLabels[e.code] || e.code; tr.appendChild(tdO);
+        const tdC=document.createElement('td'); tdC.className="sum"; tdC.style.textAlign='center'; tdC.innerHTML=`<span class="status ${getCodeStatusClass(e.code)}">${e.code}</span>`; tr.appendChild(tdC);
+        const tdO=document.createElement('td'); tdO.textContent=getCodeLabel(e.code); tr.appendChild(tdO);
         tbody2.appendChild(tr);
       });
     } else {
@@ -3031,7 +3035,7 @@ if(typed !== phrase){
       td.colSpan=5;
       td.style.padding='14px';
       td.style.color='var(--muted)';
-      td.textContent='Brak wpisanych kodów U / O / L4 / UT / T / Z dla wybranego pracownika.';
+      td.textContent=`Brak wpisanych kodów ${codes.join(' / ')} dla wybranego pracownika.`;
       tr.appendChild(td);
       tbody2.appendChild(tr);
     }
