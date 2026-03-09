@@ -419,6 +419,11 @@
     .year-summary-table td .saldo, .year-summary-table td .status{justify-content:center}
 
 </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/pdfmake.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/vfs_fonts.js"></script>
+
 </head>
 <body>
 <div class="wrap">
@@ -589,24 +594,79 @@
             </div>
           </details>
 
+          <details id="adminExportDetails" class="admin-accordion" style="margin:0 0 16px 0; border:1px solid rgba(255,255,255,.12); border-radius:14px; background:rgba(255,255,255,.04); overflow:hidden">
+            <summary style="list-style:none; cursor:pointer; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px">
+              <span style="font-weight:700">Eksport danych</span>
+              <span style="color:var(--muted); font-size:12px">XLSX / PDF / JSON</span>
+            </summary>
+            <div style="padding:12px 14px; border-top:1px solid rgba(255,255,255,.10)">
+              <div class="modal-sub" style="margin:0 0 10px 0">Eksport do Excela i PDF z kilkoma wariantami zakresu</div>
+              <div class="admin-note" style="margin:0 0 12px 0">Excel zawiera 4 arkusze: Parametry, Dane, Podsumowanie i Saldo.</div>
+
+              <div style="display:grid; gap:12px; grid-template-columns: repeat(auto-fit,minmax(260px,1fr));">
+                <div style="padding:12px; border:1px solid rgba(255,255,255,.10); border-radius:12px; background:rgba(255,255,255,.03)">
+                  <div style="font-weight:700; margin-bottom:8px">Cały okres</div>
+                  <div style="color:var(--muted); font-size:12px; margin-bottom:8px">Wszystkie lata 2025–2035</div>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap">
+                    <button id="exportXlsxAllBtn" type="button" class="btn-primary">XLSX</button>
+                    <button id="exportPdfAllBtn" type="button" class="btn">PDF</button>
+                  </div>
+                </div>
+
+                <div style="padding:12px; border:1px solid rgba(255,255,255,.10); border-radius:12px; background:rgba(255,255,255,.03)">
+                  <div style="font-weight:700; margin-bottom:8px">Wybrany rok</div>
+                  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px">
+                    <select id="exportYearSel" class="btn" style="min-width:120px"></select>
+                    <button id="exportXlsxYearBtn" type="button" class="btn-primary">XLSX</button>
+                    <button id="exportPdfYearBtn" type="button" class="btn">PDF</button>
+                  </div>
+                </div>
+
+                <div style="padding:12px; border:1px solid rgba(255,255,255,.10); border-radius:12px; background:rgba(255,255,255,.03)">
+                  <div style="font-weight:700; margin-bottom:8px">Wybrany miesiąc</div>
+                  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px">
+                    <select id="exportMonthYearSel" class="btn" style="min-width:120px"></select>
+                    <select id="exportMonthSel" class="btn" style="min-width:140px"></select>
+                    <button id="exportXlsxMonthBtn" type="button" class="btn-primary">XLSX</button>
+                    <button id="exportPdfMonthBtn" type="button" class="btn">PDF</button>
+                  </div>
+                </div>
+
+                <div style="padding:12px; border:1px solid rgba(255,255,255,.10); border-radius:12px; background:rgba(255,255,255,.03)">
+                  <div style="font-weight:700; margin-bottom:8px">Własny zakres dat</div>
+                  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px">
+                    <input id="exportRangeFrom" class="modal-input" type="date" style="max-width:170px" />
+                    <input id="exportRangeTo" class="modal-input" type="date" style="max-width:170px" />
+                    <button id="exportXlsxRangeBtn" type="button" class="btn-primary">XLSX</button>
+                    <button id="exportPdfRangeBtn" type="button" class="btn">PDF</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px">
+                <button id="exportJsonBackupBtn" type="button" class="btn">Pobierz JSON backup</button>
+                <span id="exportStatus" style="color:var(--muted); font-size:12px"></span>
+              </div>
+            </div>
+          </details>
+
           <details id="adminBackupsDetails" class="admin-accordion" style="margin:0 0 16px 0; border:1px solid rgba(255,255,255,.12); border-radius:14px; background:rgba(255,255,255,.04); overflow:hidden">
             <summary style="list-style:none; cursor:pointer; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px">
               <span style="font-weight:700">Backupy / archiwum</span>
-              <span style="color:var(--muted); font-size:12px">import • podgląd • przywracanie</span>
+              <span style="color:var(--muted); font-size:12px">podgląd / przywracanie</span>
             </summary>
             <div style="padding:12px 14px; border-top:1px solid rgba(255,255,255,.10)">
-              <div class="modal-sub" style="margin:0 0 10px 0">Backupy JSON i archiwum lokalne</div>
-              <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 12px 0">
-                <button id="backupCreateBtn" type="button" class="btn">Utwórz backup teraz</button>
+              <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px">
+                <button id="backupCreateBtn" type="button" class="btn-primary">Utwórz backup teraz</button>
                 <button id="backupImportBtn" type="button" class="btn">Importuj backup JSON</button>
-                <button id="backupExitPreviewBtn" type="button" class="btn">Wyjdź z podglądu backupu</button>
-                <input id="backupImportInput" type="file" accept="application/json,.json" style="display:none" />
+                <button id="backupExitPreviewBtn" type="button" class="btn" style="display:none">Wyjdź z podglądu backupu</button>
+                <input id="backupImportFile" type="file" accept="application/json,.json" style="display:none" />
               </div>
-              <div id="backupMsg" style="color:var(--muted); font-size:12px; margin:0 0 10px 0">Możesz importować różne backupy z różnych okresów. Następnie wybierasz backup do podglądu lub przywrócenia.</div>
-              <div id="backupPreviewInfo" style="display:none; color:#ffd79a; font-size:12px; margin:0 0 10px 0"></div>
-              <div id="backupArchiveList" class="admin-list" style="gap:8px"></div>
+              <div id="backupStatus" style="color:var(--muted); font-size:12px; margin-bottom:10px"></div>
+              <div id="backupList" style="display:grid; gap:10px"></div>
             </div>
           </details>
+
 <details id="adminEmployeesDetails" class="admin-accordion" style="margin:0 0 16px 0; border:1px solid rgba(255,255,255,.12); border-radius:14px; background:rgba(255,255,255,.04); overflow:hidden" open><summary style="list-style:none; cursor:pointer; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px"><span style="font-weight:700">Pracownicy</span><span style="color:var(--muted); font-size:12px">lista wspólna</span></summary><div style="padding:12px 14px; border-top:1px solid rgba(255,255,255,.10)"><div class="modal-sub" style="margin:0 0 10px 0">Zarządzanie pracownikami (lista wspólna dla wszystkich lat)</div>
 
           <div class="admin-grid">
@@ -793,20 +853,35 @@
     secGlobalStatus: document.getElementById('secGlobalStatus'),
     secGlobalMsg: document.getElementById('secGlobalMsg'),
 
+    // Export / backup
+    exportXlsxAllBtn: document.getElementById('exportXlsxAllBtn'),
+    exportPdfAllBtn: document.getElementById('exportPdfAllBtn'),
+    exportYearSel: document.getElementById('exportYearSel'),
+    exportXlsxYearBtn: document.getElementById('exportXlsxYearBtn'),
+    exportPdfYearBtn: document.getElementById('exportPdfYearBtn'),
+    exportMonthYearSel: document.getElementById('exportMonthYearSel'),
+    exportMonthSel: document.getElementById('exportMonthSel'),
+    exportXlsxMonthBtn: document.getElementById('exportXlsxMonthBtn'),
+    exportPdfMonthBtn: document.getElementById('exportPdfMonthBtn'),
+    exportRangeFrom: document.getElementById('exportRangeFrom'),
+    exportRangeTo: document.getElementById('exportRangeTo'),
+    exportXlsxRangeBtn: document.getElementById('exportXlsxRangeBtn'),
+    exportPdfRangeBtn: document.getElementById('exportPdfRangeBtn'),
+    exportJsonBackupBtn: document.getElementById('exportJsonBackupBtn'),
+    exportStatus: document.getElementById('exportStatus'),
+    backupCreateBtn: document.getElementById('backupCreateBtn'),
+    backupImportBtn: document.getElementById('backupImportBtn'),
+    backupImportFile: document.getElementById('backupImportFile'),
+    backupList: document.getElementById('backupList'),
+    backupStatus: document.getElementById('backupStatus'),
+    backupExitPreviewBtn: document.getElementById('backupExitPreviewBtn'),
+    backupPreviewBanner: document.getElementById('backupPreviewBanner'),
+
     // Access modal
     accessModal: document.getElementById('accessModal'),
     accessPass: document.getElementById('accessPass'),
     accessOpenBtn: document.getElementById('accessOpenBtn'),
     accessMsg: document.getElementById('accessMsg'),
-
-    // Backups / archive
-    backupCreateBtn: document.getElementById('backupCreateBtn'),
-    backupImportBtn: document.getElementById('backupImportBtn'),
-    backupImportInput: document.getElementById('backupImportInput'),
-    backupExitPreviewBtn: document.getElementById('backupExitPreviewBtn'),
-    backupMsg: document.getElementById('backupMsg'),
-    backupPreviewInfo: document.getElementById('backupPreviewInfo'),
-    backupArchiveList: document.getElementById('backupArchiveList'),
 
   };
 
@@ -1072,7 +1147,6 @@ function normalizeCellValue(val){
   }
 
   function isMonthLocked(m){
-    if(isPreviewMode()) return true;
     return !!(state.settings && (state.settings.yearLocked || (state.settings.monthLocks && state.settings.monthLocks[m])));
   }
   function sanitizeYearSettings(raw){
@@ -1239,293 +1313,9 @@ function normalizeCellValue(val){
   let selectedAbsenceEmp = null;
   let adminLockYear = currentYear;
   let adminLockSettingsCache = {};
-  let activeBackupPreviewId = localStorage.getItem('nadgodziny_backup_preview_id') || '';
-  const BACKUP_ARCHIVE_KEY = 'nadgodziny_backup_archive_v1';
-
-  function isPreviewMode(){ return !!activeBackupPreviewId; }
-  function getBackupArchive(){
-    try{
-      const arr = JSON.parse(localStorage.getItem(BACKUP_ARCHIVE_KEY) || '[]');
-      return Array.isArray(arr) ? arr : [];
-    }catch(e){ return []; }
-  }
-  function saveBackupArchive(arr){
-    localStorage.setItem(BACKUP_ARCHIVE_KEY, JSON.stringify(Array.isArray(arr) ? arr : []));
-  }
-  function getArchiveBackupById(id){
-    return getBackupArchive().find(x => x && x.id === id) || null;
-  }
-  function yearHasAnyEntries(ys){
-    try{
-      if(!ys || !ys.months) return false;
-      for(let m=1;m<=12;m++){
-        const mm = ys.months[m] || {};
-        for(const emp of Object.keys(mm)){
-          const arr = Array.isArray(mm[emp]) ? mm[emp] : [];
-          if(arr.some(v => String(v||'').trim() !== '')) return true;
-        }
-      }
-      return false;
-    }catch(e){ return false; }
-  }
-  function backupYearsIncluded(rec){
-    const yearsObj = (rec && rec.years && typeof rec.years === 'object') ? rec.years : {};
-    return YEARS.filter(y => yearsObj[y] || yearsObj[String(y)]).filter(y => yearHasAnyEntries(yearsObj[y] || yearsObj[String(y)]) || !!(yearsObj[y] || yearsObj[String(y)]));
-  }
-  function countBackupEntries(rec){
-    let total = 0;
-    const yearsObj = (rec && rec.years && typeof rec.years === 'object') ? rec.years : {};
-    YEARS.forEach(y => {
-      const ys = yearsObj[y] || yearsObj[String(y)];
-      if(!ys || !ys.months) return;
-      for(let m=1;m<=12;m++){
-        const mm = ys.months[m] || {};
-        Object.keys(mm).forEach(emp => {
-          const arr = Array.isArray(mm[emp]) ? mm[emp] : [];
-          total += arr.filter(v => String(v||'').trim() !== '').length;
-        });
-      }
-    });
-    return total;
-  }
-  function backupRangeLabel(rec){
-    const yrs = backupYearsIncluded(rec);
-    if(!yrs.length) return 'brak danych';
-    return yrs.length === 1 ? String(yrs[0]) : `${yrs[0]}–${yrs[yrs.length-1]}`;
-  }
-  function normalizeBackupPayload(raw, fallbackName='Backup importowany'){
-    const now = Date.now();
-    const payload = raw && typeof raw === 'object' ? raw : {};
-    const years = {};
-    if(payload.years && typeof payload.years === 'object'){
-      YEARS.forEach(y => {
-        const ys = payload.years[y] || payload.years[String(y)];
-        if(ys) years[y] = normalizeState(Object.assign({}, ys, { year:y }));
-      });
-    } else if(payload.year && payload.months){
-      const y = Number(payload.year);
-      if(YEARS.includes(y)) years[y] = normalizeState(Object.assign({}, payload, { year:y }));
-    }
-    if(!Object.keys(years).length){
-      YEARS.forEach(y => { years[y] = defaultState(); years[y].year = y; });
-    }
-    return {
-      id: payload.id || `bkp_${now}_${Math.random().toString(36).slice(2,8)}`,
-      name: String(payload.name || payload.label || fallbackName || 'Backup').slice(0,120),
-      createdAt: Number(payload.createdAt || payload.exportedAt || now) || now,
-      source: String(payload.source || 'import'),
-      years,
-      meta: {
-        importedAt: now,
-        originalName: payload.originalName || '',
-        note: payload.note || '',
-      }
-    };
-  }
-  function setBackupMsg(text, ok=true){
-    if(!els.backupMsg) return;
-    els.backupMsg.textContent = text || '';
-    els.backupMsg.style.color = ok ? 'var(--muted)' : '#ffb4b4';
-  }
-  function updateBackupPreviewInfo(){
-    if(!els.backupPreviewInfo) return;
-    const rec = getArchiveBackupById(activeBackupPreviewId);
-    if(rec){
-      els.backupPreviewInfo.style.display = '';
-      els.backupPreviewInfo.textContent = `Aktywny podgląd backupu: ${rec.name} • zakres: ${backupRangeLabel(rec)}. Edycja i zapis do chmury są zablokowane do czasu wyjścia z podglądu.`;
-    } else {
-      els.backupPreviewInfo.style.display = 'none';
-      els.backupPreviewInfo.textContent = '';
-    }
-  }
-  function renderBackupArchiveList(){
-    if(!els.backupArchiveList) return;
-    const archive = getBackupArchive().sort((a,b) => Number(b.createdAt||0) - Number(a.createdAt||0));
-    els.backupArchiveList.innerHTML = '';
-    if(!archive.length){
-      const empty = document.createElement('div');
-      empty.className = 'admin-note';
-      empty.textContent = 'Brak zapisanych backupów w archiwum tej przeglądarki.';
-      els.backupArchiveList.appendChild(empty);
-      updateBackupPreviewInfo();
-      return;
-    }
-    archive.forEach(rec => {
-      const row = document.createElement('div');
-      row.className = 'admin-row';
-      row.style.gridTemplateColumns = '1fr auto auto auto auto';
-      row.style.alignItems = 'center';
-      const meta = document.createElement('div');
-      const dt = new Date(Number(rec.createdAt || Date.now()));
-      const yrs = backupYearsIncluded(rec);
-      meta.innerHTML = `<div style="font-weight:700">${rec.name || 'Backup'}</div><div style="font-size:12px;color:var(--muted)">${dt.toLocaleString('pl-PL')} • lata: ${yrs.join(', ') || 'brak'} • wpisy: ${countBackupEntries(rec)}</div>`;
-      row.appendChild(meta);
-      const mkBtn = (label, cls='btn') => { const b=document.createElement('button'); b.type='button'; b.className=cls; b.textContent=label; return b; };
-      const previewBtn = mkBtn(activeBackupPreviewId === rec.id ? 'Używany' : 'Użyj', activeBackupPreviewId === rec.id ? 'btn-primary' : 'btn');
-      previewBtn.addEventListener('click', ()=> activateBackupPreview(rec.id));
-      const restoreBtn = mkBtn('Przywróć', 'btn');
-      restoreBtn.addEventListener('click', ()=> restoreBackupToCloud(rec.id));
-      const downloadBtn = mkBtn('Pobierz', 'btn');
-      downloadBtn.addEventListener('click', ()=> downloadBackupRecord(rec));
-      const delBtn = mkBtn('Usuń', 'btn-danger');
-      delBtn.addEventListener('click', ()=> deleteBackupRecord(rec.id));
-      row.append(previewBtn, restoreBtn, downloadBtn, delBtn);
-      els.backupArchiveList.appendChild(row);
-    });
-    updateBackupPreviewInfo();
-  }
-  function persistBackupRecord(rec, prepend=true){
-    const archive = getBackupArchive().filter(x => x && x.id !== rec.id);
-    if(prepend) archive.unshift(rec); else archive.push(rec);
-    saveBackupArchive(archive.slice(0,50));
-    renderBackupArchiveList();
-  }
-  function downloadJson(filename, obj){
-    const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 1000);
-  }
-  function downloadBackupRecord(rec){
-    const safeName = String(rec.name || 'backup').replace(/[^a-z0-9_-]+/gi, '_').slice(0,40);
-    downloadJson(`${safeName || 'backup'}_${new Date(Number(rec.createdAt||Date.now())).toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`, {
-      format: 'nadgodziny-backup-v2',
-      id: rec.id,
-      name: rec.name,
-      createdAt: rec.createdAt,
-      source: rec.source || 'archive',
-      years: rec.years
-    });
-  }
-  function deleteBackupRecord(id){
-    const rec = getArchiveBackupById(id);
-    if(!rec) return;
-    if(!confirm(`Usunąć backup z archiwum lokalnego?
-
-${rec.name}`)) return;
-    saveBackupArchive(getBackupArchive().filter(x => x && x.id !== id));
-    if(activeBackupPreviewId === id){
-      activeBackupPreviewId = '';
-      localStorage.removeItem('nadgodziny_backup_preview_id');
-      if(currentUser && dbRef) subscribeRemote();
-      render();
-      showToast('wrócono do danych na żywo', true);
-    }
-    renderBackupArchiveList();
-  }
-  function getPreviewStateForYear(y){
-    const rec = getArchiveBackupById(activeBackupPreviewId);
-    if(!rec) return null;
-    const ys = rec.years && (rec.years[y] || rec.years[String(y)]);
-    if(!ys) {
-      const blank = defaultState(); blank.year = y; return blank;
-    }
-    const norm = normalizeState(Object.assign({}, ys, { year:y }));
-    norm.year = y;
-    return norm;
-  }
-  function activateBackupPreview(id){
-    const rec = getArchiveBackupById(id);
-    if(!rec) return;
-    activeBackupPreviewId = rec.id;
-    localStorage.setItem('nadgodziny_backup_preview_id', rec.id);
-    detachRemote();
-    const previewState = getPreviewStateForYear(currentYear) || defaultState();
-    state = previewState;
-    employees = state.employees.slice();
-    render();
-    refreshAdminUI();
-    renderBackupArchiveList();
-    showToast(`podgląd backupu: ${rec.name}`, true);
-  }
-  function exitBackupPreview(){
-    if(!isPreviewMode()) return;
-    activeBackupPreviewId = '';
-    localStorage.removeItem('nadgodziny_backup_preview_id');
-    renderBackupArchiveList();
-    if(currentUser && dbRef){
-      subscribeRemote();
-    } else {
-      state = defaultState(); employees = state.employees.slice(); render();
-    }
-    refreshAdminUI();
-    showToast('wrócono do danych na żywo', true);
-  }
-  async function collectAllYearsFromCloud(){
-    const result = {};
-    if(!db || !currentUser) throw new Error('Najpierw zaloguj się do Firebase.');
-    for(const y of YEARS){
-      const snap = await db.ref(YEAR_DB_PATH(y)).once('value');
-      const raw = snap.val();
-      const ys = raw ? normalizeState(raw) : defaultState();
-      ys.year = y;
-      result[y] = ys;
-    }
-    return result;
-  }
-  async function createBackupNow(){
-    if(!isAdmin()){ openAdminModal(); showAdminMsg('Najpierw zaloguj się jako admin.', false); return; }
-    try{
-      setBackupMsg('Tworzę backup z chmury…', true);
-      const years = await collectAllYearsFromCloud();
-      const now = Date.now();
-      const rec = normalizeBackupPayload({
-        id: `bkp_${now}`,
-        name: `Backup ${new Date(now).toLocaleString('pl-PL')}`,
-        createdAt: now,
-        source: 'cloud_snapshot',
-        years
-      }, 'Backup');
-      persistBackupRecord(rec);
-      downloadBackupRecord(rec);
-      setBackupMsg('Utworzono backup i zapisano go w archiwum lokalnym ✅', true);
-    }catch(e){
-      console.error(e);
-      setBackupMsg(`Błąd tworzenia backupu: ${e.message || e}`, false);
-    }
-  }
-  async function restoreBackupToCloud(id){
-    const rec = getArchiveBackupById(id);
-    if(!rec) return;
-    if(!isAdmin()){ openAdminModal(); showAdminMsg('Najpierw zaloguj się jako admin.', false); return; }
-    if(!db || !currentUser){ setBackupMsg('Najpierw zaloguj się do Firebase.', false); return; }
-    const years = backupYearsIncluded(rec);
-    const typed = prompt(`Przywrócisz backup do chmury dla lat: ${years.join(', ') || 'brak'}.
-Aby potwierdzić, wpisz: przywrocbackup`);
-    if(typed !== 'przywrocbackup') return;
-    try{
-      setBackupMsg('Przywracam backup do chmury…', true);
-      for(const y of years){
-        const ys = rec.years[y] || rec.years[String(y)];
-        if(ys) await db.ref(YEAR_DB_PATH(y)).set(ys);
-      }
-      if(activeBackupPreviewId === id) exitBackupPreview();
-      if(currentUser && dbRef) subscribeRemote();
-      setBackupMsg(`Przywrócono backup do chmury dla lat: ${years.join(', ')} ✅`, true);
-      showToast('backup przywrócony', true);
-    }catch(e){
-      console.error(e);
-      setBackupMsg(`Błąd przywracania backupu: ${e.message || e}`, false);
-    }
-  }
-  async function importBackupFiles(fileList){
-    const files = Array.from(fileList || []).filter(Boolean);
-    if(!files.length) return;
-    for(const file of files){
-      try{
-        const text = await file.text();
-        const raw = JSON.parse(text);
-        const rec = normalizeBackupPayload(Object.assign({}, raw, { originalName:file.name }), file.name.replace(/\.json$/i,''));
-        persistBackupRecord(rec);
-      }catch(e){
-        console.error(e);
-        setBackupMsg(`Nie udało się zaimportować pliku ${file.name}: ${e.message || e}`, false);
-        return;
-      }
-    }
-    setBackupMsg('Zaimportowano backup JSON do archiwum lokalnego ✅', true);
-  }
+  let backupArchive = [];
+  let backupPreview = null;
+  let liveYearBeforeBackupPreview = currentYear;
 
   // ====== Firebase ======
   let app = null;
@@ -1605,8 +1395,8 @@ Aby potwierdzić, wpisz: przywrocbackup`);
           hideAuthModal();
           if (accountBtn) accountBtn.style.display = '';
           subscribeShared();
-          if(!isPreviewMode()) subscribeRemote();
-          showToast(isPreviewMode() ? `podgląd backupu (${currentUser.email || 'konto'})` : `połączono (${currentUser.email || 'konto'})`, true);
+          subscribeRemote();
+          showToast(`połączono (${currentUser.email || 'konto'})`, true);
         } else {
           remoteReady = false;
           detachRemote();
@@ -1697,9 +1487,9 @@ Aby potwierdzić, wpisz: przywrocbackup`);
   }
 
   function saveRemote(showAlert=false){
-    if (isPreviewMode()) {
-      alert('Jesteś w podglądzie backupu. Wyjdź z podglądu, aby zapisywać dane do chmury.');
-      return Promise.reject(new Error('Preview mode'));
+    if (backupPreview) {
+      showToast('Tryb podglądu backupu — zapis do chmury jest zablokowany.', false);
+      return Promise.reject(new Error('Backup preview active'));
     }
     if (!dbRef || !currentUser) {
       showAuthModal();
@@ -1725,7 +1515,6 @@ Aby potwierdzić, wpisz: przywrocbackup`);
   }
 
   function saveSharedSettings(showAlert=false){
-    if (isPreviewMode()) return Promise.reject(new Error('Preview mode'));
     if (!sharedRef || !currentUser) return Promise.reject(new Error('Not authenticated'));
     const payload = {
       adminPassword: (typeof sharedSettings.adminPassword === 'string' && sharedSettings.adminPassword.length >= 6) ? sharedSettings.adminPassword : null,
@@ -1737,7 +1526,7 @@ Aby potwierdzić, wpisz: przywrocbackup`);
   }
 
   function queueSave(delay=700){
-    if (isPreviewMode()) return;
+    if (backupPreview) return;
     if (!remoteReady || !currentUser) return;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => { saveRemote(false).catch(()=>{}); }, delay);
@@ -1845,11 +1634,7 @@ Aby potwierdzić, wpisz: przywrocbackup`);
     setPicker(els.adminColorZ, cc.Z);
     if(els.adminResetColors) els.adminResetColors.disabled = !on;
     renderAdminLockControls();
-    if(els.backupCreateBtn) els.backupCreateBtn.disabled = !on;
-    if(els.backupImportBtn) els.backupImportBtn.disabled = !on;
-    if(els.backupExitPreviewBtn) els.backupExitPreviewBtn.disabled = !isPreviewMode();
-    renderBackupArchiveList();
-    updateBackupPreviewInfo();
+  
     updateSecurityStatusUI();
 }
   function showAdminMsg(text, ok){
@@ -2018,22 +1803,6 @@ if(typed !== phrase){
       showAdminMsg("Dodano pracownika ✅", true);
       await saveRemote(false).catch(()=>{});
     });
-  }
-
-  if(els.backupCreateBtn){
-    els.backupCreateBtn.addEventListener('click', createBackupNow);
-  }
-  if(els.backupImportBtn){
-    els.backupImportBtn.addEventListener('click', ()=>{ if(!isAdmin()) return; els.backupImportInput && els.backupImportInput.click(); });
-  }
-  if(els.backupImportInput){
-    els.backupImportInput.addEventListener('change', async (e)=>{
-      await importBackupFiles(e.target.files || []);
-      e.target.value = '';
-    });
-  }
-  if(els.backupExitPreviewBtn){
-    els.backupExitPreviewBtn.addEventListener('click', exitBackupPreview);
   }
 
   if(els.adminLoginBtn){
@@ -2938,33 +2707,24 @@ if(typed !== phrase){
     });
 
     const sourceByYear = {};
-    if(isPreviewMode()){
-      const rec = getArchiveBackupById(activeBackupPreviewId);
-      YEARS.forEach(y=>{
-        const ys = rec && rec.years && (rec.years[y] || rec.years[String(y)]);
-        sourceByYear[y] = ys ? normalizeState(Object.assign({}, ys, {year:y})) : defaultState();
-        sourceByYear[y].year = y;
-      });
-    } else {
-      sourceByYear[currentYear] = normalizeState(state);
+    sourceByYear[currentYear] = normalizeState(state);
 
-      for(const y of YEARS){
-        if(y === currentYear) continue;
-        try{
-          if(db && currentUser){
-            const snap = await db.ref(YEAR_DB_PATH(y)).once('value');
-            const raw = snap.val();
-            sourceByYear[y] = raw ? normalizeState(raw) : defaultState();
-            sourceByYear[y].year = y;
-          } else {
-            sourceByYear[y] = defaultState();
-            sourceByYear[y].year = y;
-          }
-        }catch(e){
-          console.error(e);
+    for(const y of YEARS){
+      if(y === currentYear) continue;
+      try{
+        if(db && currentUser){
+          const snap = await db.ref(YEAR_DB_PATH(y)).once('value');
+          const raw = snap.val();
+          sourceByYear[y] = raw ? normalizeState(raw) : defaultState();
+          sourceByYear[y].year = y;
+        } else {
           sourceByYear[y] = defaultState();
           sourceByYear[y].year = y;
         }
+      }catch(e){
+        console.error(e);
+        sourceByYear[y] = defaultState();
+        sourceByYear[y].year = y;
       }
     }
 
@@ -2988,7 +2748,7 @@ if(typed !== phrase){
     setMonthPreview();
     const loading = document.createElement('div');
     loading.className='monthblock';
-    loading.innerHTML = `<div class="blockhead"><div><b>Podsumowanie całego okresu</b></div><div>ładowanie danych…</div></div><div style="padding:16px;color:var(--muted)">${isPreviewMode() ? 'Wczytuję salda z aktywnego backupu.' : `Pobieram salda dla wszystkich lat ${YEARS[0]}–${YEARS[YEARS.length-1]}.`}</div>`;
+    loading.innerHTML = `<div class="blockhead"><div><b>Podsumowanie całego okresu</b></div><div>ładowanie danych…</div></div><div style="padding:16px;color:var(--muted)">Pobieram salda dla wszystkich lat ${YEARS[0]}–${YEARS[YEARS.length-1]}.</div>`;
     els.tableWrap.innerHTML='';
     els.tableWrap.appendChild(loading);
 
@@ -3443,23 +3203,20 @@ if(typed !== phrase){
   async function switchYear(year){
     year = Number(year);
     if(!YEARS.includes(year) || year===currentYear) return;
-    if(!isPreviewMode()) detachRemote();
+    detachRemote();
     currentYear = year;
     localStorage.setItem('nadgodziny_current_year', String(currentYear));
     els.yearLabel.textContent = currentYear;
     const sub = document.querySelector('.title .sub');
     if(sub) sub.innerHTML = `Wersja online (Firebase) • Rok <b>${currentYear}</b> • Wspólny zapis/odczyt dla całego działu`;
     dbRef = db ? db.ref(YEAR_DB_PATH(currentYear)) : null;
-    if(isPreviewMode()){
-      state = getPreviewStateForYear(currentYear) || defaultState();
-    } else {
-      state = defaultState();
-    }
+    state = defaultState();
     employees = state.employees.slice();
     adminLockYear = currentYear;
     populateYearSelectors();
+    populateExportSelectors();
     render();
-    if(!isPreviewMode() && currentUser && dbRef) subscribeRemote();
+    if(currentUser && dbRef) subscribeRemote();
     if(isAdmin()) renderAdminLockControls();
   }
   if(els.yearSel) els.yearSel.addEventListener('change', (e)=> switchYear(e.target.value));
@@ -3516,27 +3273,396 @@ if(typed !== phrase){
   });
 
   populateYearSelectors();
-  renderBackupArchiveList();
-  if(isPreviewMode()){
-    const rec = getArchiveBackupById(activeBackupPreviewId);
-    if(rec){
-      const previewState = getPreviewStateForYear(currentYear) || defaultState();
-      state = previewState;
+
+  const BACKUP_ARCHIVE_KEY = 'nadgodziny_backup_archive_v1';
+
+  function setExportStatus(msg, ok=true){
+    if(!els.exportStatus) return;
+    els.exportStatus.textContent = msg || '';
+    els.exportStatus.style.color = ok ? 'var(--muted)' : '#ffb4b4';
+  }
+  function setBackupStatus(msg, ok=true){
+    if(!els.backupStatus) return;
+    els.backupStatus.textContent = msg || '';
+    els.backupStatus.style.color = ok ? 'var(--muted)' : '#ffb4b4';
+  }
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function formatDateISO(y,m,d){ return `${y}-${pad2(m)}-${pad2(d)}`; }
+  function formatDatePL(iso){
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||''));
+    return m ? `${m[3]}.${m[2]}.${m[1]}` : String(iso||'');
+  }
+  function fileStamp(){ const n=new Date(); return `${n.getFullYear()}-${pad2(n.getMonth()+1)}-${pad2(n.getDate())}_${pad2(n.getHours())}-${pad2(n.getMinutes())}`; }
+  function safeFilename(base){ return String(base).replace(/[^a-zA-Z0-9_\-.ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g,'_'); }
+  function downloadBlob(blob, filename){
+    const a=document.createElement('a');
+    const url=URL.createObjectURL(blob);
+    a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 500);
+  }
+  function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch])); }
+  function sanitizeStateForBackup(s){
+    const cloned = JSON.parse(JSON.stringify(s || {}));
+    if(cloned.settings){
+      delete cloned.settings.adminPassword;
+      delete cloned.settings.globalAccessPassword;
+    }
+    return cloned;
+  }
+  function populateExportSelectors(){
+    if(els.exportYearSel) els.exportYearSel.innerHTML = YEARS.map(y=>`<option value="${y}" ${y===currentYear?'selected':''}>${y}</option>`).join('');
+    if(els.exportMonthYearSel) els.exportMonthYearSel.innerHTML = YEARS.map(y=>`<option value="${y}" ${y===currentYear?'selected':''}>${y}</option>`).join('');
+    if(els.exportMonthSel) els.exportMonthSel.innerHTML = monthNames.map((name,idx)=>`<option value="${idx+1}" ${(idx+1)===currentMonth?'selected':''}>${name}</option>`).join('');
+    if(els.exportRangeFrom && !els.exportRangeFrom.value) els.exportRangeFrom.value = `${YEARS[0]}-01-01`;
+    if(els.exportRangeTo && !els.exportRangeTo.value) els.exportRangeTo.value = `${YEARS[YEARS.length-1]}-12-31`;
+  }
+  function loadBackupArchive(){
+    try{
+      const raw = localStorage.getItem(BACKUP_ARCHIVE_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      backupArchive = Array.isArray(arr) ? arr : [];
+    }catch(e){ backupArchive = []; }
+    renderBackupArchive();
+  }
+  function saveBackupArchive(){
+    try{ localStorage.setItem(BACKUP_ARCHIVE_KEY, JSON.stringify(backupArchive)); }catch(e){ console.error(e); setBackupStatus('Nie udało się zapisać archiwum backupów w tej przeglądarce.', false); }
+    renderBackupArchive();
+  }
+  function updateBackupPreviewUI(){
+    const on = !!backupPreview;
+    if(els.backupPreviewBanner) els.backupPreviewBanner.style.display = on ? 'block' : 'none';
+    if(els.backupExitPreviewBtn) els.backupExitPreviewBtn.style.display = on ? '' : 'none';
+    if(els.saveBtn) els.saveBtn.disabled = on;
+    const sub = document.querySelector('.title .sub');
+    if(sub) sub.innerHTML = `Wersja online (Firebase) • Rok <b>${currentYear}</b> • Wspólny zapis/odczyt dla całego działu` + (on ? ` • <b style="color:#ffd27a">PODGLĄD BACKUPU</b>` : ``);
+  }
+  function renderBackupArchive(){
+    if(!els.backupList) return;
+    const items = backupArchive.slice().sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
+    if(!items.length){
+      els.backupList.innerHTML = `<div style="padding:12px; border:1px dashed rgba(255,255,255,.14); border-radius:12px; color:var(--muted)">Brak backupów w lokalnym archiwum tej przeglądarki.</div>`;
+      return;
+    }
+    els.backupList.innerHTML = items.map(item=>{
+      const years = Object.keys(item.years||{}).map(Number).sort((a,b)=>a-b);
+      const label = item.label || `Backup ${formatDatePL(new Date(item.createdAt||Date.now()).toISOString().slice(0,10))}`;
+      return `<div style="padding:12px; border:1px solid rgba(255,255,255,.10); border-radius:12px; background:rgba(255,255,255,.03)">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap">
+          <div>
+            <div style="font-weight:700">${escapeHtml(label)}</div>
+            <div style="color:var(--muted); font-size:12px; margin-top:4px">Utworzono: ${new Date(item.createdAt||Date.now()).toLocaleString('pl-PL')} • Lata: ${years.join(', ') || 'brak'}</div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <button type="button" class="btn" data-backup-action="preview" data-backup-id="${escapeHtml(item.id)}">Użyj / podgląd</button>
+            <button type="button" class="btn" data-backup-action="restore" data-backup-id="${escapeHtml(item.id)}">Przywróć</button>
+            <button type="button" class="btn" data-backup-action="download" data-backup-id="${escapeHtml(item.id)}">Pobierz</button>
+            <button type="button" class="btn-danger" data-backup-action="delete" data-backup-id="${escapeHtml(item.id)}">Usuń</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  function getBackupById(id){ return backupArchive.find(x=>x && x.id===id) || null; }
+  async function fetchYearSnapshot(year, opts={}){
+    const y = Number(year);
+    if(!YEARS.includes(y)) throw new Error('Nieprawidłowy rok');
+    if(backupPreview && !opts.ignorePreview && backupPreview.years && backupPreview.years[y]) return normalizeState(backupPreview.years[y]);
+    if(y===currentYear && !opts.forceRemote && !opts.ignorePreview) return normalizeState(cloneForSave());
+    if(!db || !currentUser) throw new Error('Najpierw zaloguj się do Firebase.');
+    const snap = await db.ref(YEAR_DB_PATH(y)).once('value');
+    return normalizeState(snap.val());
+  }
+  async function fetchSnapshotsForYears(years, opts={}){
+    const out = {};
+    for(const y of years){ out[y] = sanitizeStateForBackup(await fetchYearSnapshot(y, opts)); }
+    return out;
+  }
+  function buildRowsFromSnapshots(yearMap, range){
+    const codes = getTrackedCodes();
+    const rows = [];
+    const from = range && range.from ? String(range.from) : null;
+    const to = range && range.to ? String(range.to) : null;
+    const years = Object.keys(yearMap||{}).map(Number).sort((a,b)=>a-b);
+    years.forEach(y=>{
+      const snap = normalizeState(yearMap[y]);
+      const emps = Array.isArray(snap.employees) ? snap.employees.slice() : [];
+      for(let m=1;m<=12;m++){
+        const dim = daysInMonth(y,m);
+        for(const emp of emps){
+          const arr = (((snap.months||{})[m]||{})[emp]) || Array(31).fill('');
+          for(let d=1; d<=dim; d++){
+            const value = normalizeCellValue(arr[d-1]);
+            if(!value) continue;
+            const iso = formatDateISO(y,m,d);
+            if(from && iso < from) continue;
+            if(to && iso > to) continue;
+            const num = parsePLNumber(value);
+            const code = isTrackedCode(value) ? value : '';
+            rows.push({
+              date: iso,
+              year: y,
+              month: m,
+              monthName: monthNames[m-1],
+              day: d,
+              weekday: weekdayName(y,m,d),
+              employee: emp,
+              value,
+              kind: code ? 'kod' : 'liczba',
+              numericValue: Number.isFinite(num) ? num : '',
+              code,
+              codeLabel: code ? getCodeLabel(code) : ''
+            });
+          }
+        }
+      }
+    });
+    rows.sort((a,b)=> a.date===b.date ? a.employee.localeCompare(b.employee,'pl') : a.date.localeCompare(b.date));
+    return rows;
+  }
+  function buildSummaryRows(rows){
+    const codes = getTrackedCodes();
+    const map = new Map();
+    rows.forEach(r=>{
+      if(!map.has(r.employee)){
+        const base = { employee:r.employee, saldo:0 };
+        codes.forEach(c=> base[c]=0);
+        map.set(r.employee, base);
+      }
+      const item = map.get(r.employee);
+      if(r.code) item[r.code] = (item[r.code]||0) + 1;
+      if(typeof r.numericValue === 'number' && Number.isFinite(r.numericValue)) item.saldo += r.numericValue;
+    });
+    return Array.from(map.values()).sort((a,b)=> a.employee.localeCompare(b.employee,'pl'));
+  }
+  function buildSaldoRows(summaryRows){
+    return summaryRows.map(r=>({ employee:r.employee, saldo:r.saldo, status: r.saldo>0 ? 'Nadgodziny' : r.saldo<0 ? 'Do odrobienia' : 'OK' }));
+  }
+  function buildParamsRows(scopeLabel, rows, yearMap, extra={}){
+    const years = Object.keys(yearMap||{}).map(Number).sort((a,b)=>a-b);
+    return [
+      ['Zakres eksportu', scopeLabel],
+      ['Wygenerowano', new Date().toLocaleString('pl-PL')],
+      ['Lata objęte eksportem', years.join(', ')],
+      ['Liczba wpisów', rows.length],
+      ...Object.entries(extra||{}).map(([k,v])=>[k,v])
+    ];
+  }
+  async function prepareExportDataset(kind){
+    if(!currentUser || !db){ throw new Error('Najpierw zaloguj się do Firebase.'); }
+    if(kind==='all'){
+      const yearMap = await fetchSnapshotsForYears(YEARS, {ignorePreview:false});
+      const rows = buildRowsFromSnapshots(yearMap, {from:`${YEARS[0]}-01-01`, to:`${YEARS[YEARS.length-1]}-12-31`});
+      return { scopeLabel:'Cały okres 2025–2035', filePart:'caly_okres', yearMap, rows, params: buildParamsRows('Cały okres 2025–2035', rows, yearMap) };
+    }
+    if(kind==='year'){
+      const year = Number(els.exportYearSel && els.exportYearSel.value || currentYear);
+      const yearMap = await fetchSnapshotsForYears([year], {ignorePreview:false});
+      const rows = buildRowsFromSnapshots(yearMap, {from:`${year}-01-01`, to:`${year}-12-31`});
+      return { scopeLabel:`Rok ${year}`, filePart:`rok_${year}`, yearMap, rows, params: buildParamsRows(`Rok ${year}`, rows, yearMap, {'Wybrany rok': year}) };
+    }
+    if(kind==='month'){
+      const year = Number(els.exportMonthYearSel && els.exportMonthYearSel.value || currentYear);
+      const month = Number(els.exportMonthSel && els.exportMonthSel.value || currentMonth);
+      const yearMap = await fetchSnapshotsForYears([year], {ignorePreview:false});
+      const from = formatDateISO(year, month, 1);
+      const to = formatDateISO(year, month, daysInMonth(year, month));
+      const rows = buildRowsFromSnapshots(yearMap, {from, to});
+      return { scopeLabel:`${monthNames[month-1]} ${year}`, filePart:`${year}_${pad2(month)}`, yearMap, rows, params: buildParamsRows(`${monthNames[month-1]} ${year}`, rows, yearMap, {'Wybrany rok': year, 'Wybrany miesiąc': monthNames[month-1]}) };
+    }
+    if(kind==='range'){
+      const from = String(els.exportRangeFrom && els.exportRangeFrom.value || '').trim();
+      const to = String(els.exportRangeTo && els.exportRangeTo.value || '').trim();
+      if(!from || !to) throw new Error('Wybierz obie daty zakresu.');
+      if(from > to) throw new Error('Data "od" nie może być późniejsza niż data "do".');
+      const yearStart = Number(from.slice(0,4));
+      const yearEnd = Number(to.slice(0,4));
+      const years = YEARS.filter(y=>y>=yearStart && y<=yearEnd);
+      const yearMap = await fetchSnapshotsForYears(years, {ignorePreview:false});
+      const rows = buildRowsFromSnapshots(yearMap, {from, to});
+      return { scopeLabel:`Zakres ${formatDatePL(from)}–${formatDatePL(to)}`, filePart:`zakres_${from}_${to}`, yearMap, rows, params: buildParamsRows(`Zakres ${formatDatePL(from)}–${formatDatePL(to)}`, rows, yearMap, {'Data od': formatDatePL(from), 'Data do': formatDatePL(to)}) };
+    }
+    throw new Error('Nieznany typ eksportu.');
+  }
+  function exportDatasetToXlsx(dataset){
+    if(typeof XLSX === 'undefined') throw new Error('Biblioteka XLSX nie jest załadowana.');
+    const codes = getTrackedCodes();
+    const summary = buildSummaryRows(dataset.rows);
+    const saldo = buildSaldoRows(summary);
+    const wb = XLSX.utils.book_new();
+    const wsParams = XLSX.utils.aoa_to_sheet(dataset.params);
+    const dataAoa = [['Data','Rok','Miesiąc','Dzień','Dzień tygodnia','Pracownik','Wpis','Typ','Wartość liczbowa','Kod','Opis kodu']].concat(dataset.rows.map(r=>[formatDatePL(r.date),r.year,r.monthName,r.day,r.weekday,r.employee,r.value,r.kind,r.numericValue,r.code,r.codeLabel]));
+    const wsData = XLSX.utils.aoa_to_sheet(dataAoa);
+    const summaryAoa = [['Pracownik', ...codes, 'Saldo']].concat(summary.map(r=>[r.employee, ...codes.map(c=>r[c]||0), r.saldo]));
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryAoa);
+    const saldoAoa = [['Pracownik','Saldo','Status']].concat(saldo.map(r=>[r.employee,r.saldo,r.status]));
+    const wsSaldo = XLSX.utils.aoa_to_sheet(saldoAoa);
+    ;[['Parametry',wsParams],['Dane',wsData],['Podsumowanie',wsSummary],['Saldo',wsSaldo]].forEach(([name,ws])=>{ XLSX.utils.book_append_sheet(wb, ws, name); });
+    XLSX.writeFile(wb, safeFilename(`nadgodziny_${dataset.filePart}_${fileStamp()}.xlsx`));
+  }
+  function exportDatasetToPdf(dataset){
+    if(typeof pdfMake === 'undefined') throw new Error('Biblioteka PDF nie jest załadowana.');
+    const codes = getTrackedCodes();
+    const summary = buildSummaryRows(dataset.rows);
+    const saldo = buildSaldoRows(summary);
+    const makeTable = (title, headers, body) => ([
+      { text:title, style:'sectionHeader', margin:[0,12,0,6] },
+      { table:{ headerRows:1, widths: headers.map(()=> 'auto'), body:[headers, ...body] }, layout:'lightHorizontalLines' }
+    ]);
+    const docDefinition = {
+      pageOrientation:'landscape',
+      pageMargins:[24,24,24,24],
+      defaultStyle:{ font:'Roboto', fontSize:9 },
+      content:[
+        { text:'Nadgodziny — eksport PDF', style:'title' },
+        { text: dataset.scopeLabel, color:'#666', margin:[0,0,0,8] },
+        ...makeTable('Parametry eksportu', ['Pole','Wartość'], dataset.params.map(r=>[String(r[0]), String(r[1])])),
+        ...makeTable('Podsumowanie', ['Pracownik', ...codes, 'Saldo'], summary.map(r=>[r.employee, ...codes.map(c=>String(r[c]||0)), String(r.saldo)])),
+        ...makeTable('Saldo', ['Pracownik','Saldo','Status'], saldo.map(r=>[r.employee, String(r.saldo), r.status])),
+        ...makeTable('Dane dzienne', ['Data','Dzień','Pracownik','Wpis','Typ','Opis'], dataset.rows.map(r=>[formatDatePL(r.date), r.weekday, r.employee, r.value, r.kind, r.codeLabel || '']))
+      ],
+      styles:{ title:{ fontSize:16, bold:true }, sectionHeader:{ fontSize:11, bold:true } }
+    };
+    pdfMake.createPdf(docDefinition).download(safeFilename(`nadgodziny_${dataset.filePart}_${fileStamp()}.pdf`));
+  }
+  async function handleExport(kind, format){
+    try{
+      setExportStatus('Przygotowuję eksport…', true);
+      const dataset = await prepareExportDataset(kind);
+      if(format==='xlsx') exportDatasetToXlsx(dataset);
+      else if(format==='pdf') exportDatasetToPdf(dataset);
+      else throw new Error('Nieznany format eksportu.');
+      setExportStatus('Eksport gotowy ✅', true);
+    }catch(e){
+      console.error(e);
+      setExportStatus(e.message || 'Nie udało się przygotować eksportu.', false);
+    }
+  }
+  async function createBackupPayload(label='Backup ręczny'){
+    const years = backupPreview ? Object.keys(backupPreview.years||{}).map(Number) : YEARS.slice();
+    const yearMap = await fetchSnapshotsForYears(years, {ignorePreview:false});
+    return {
+      id: `bkp_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+      label,
+      createdAt: Date.now(),
+      years: yearMap,
+      employees: Array.from(new Set(Object.values(yearMap).flatMap(s=>Array.isArray(s.employees)?s.employees:[]))).sort((a,b)=>String(a).localeCompare(String(b),'pl')),
+      meta: { app:'nadgodziny', version:1, years }
+    };
+  }
+  function downloadBackupPayload(payload){
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json;charset=utf-8'});
+    downloadBlob(blob, safeFilename(`backup_nadgodziny_${fileStamp()}.json`));
+  }
+  async function createAndStoreBackup(label='Backup ręczny', downloadAlso=false){
+    const payload = await createBackupPayload(label);
+    backupArchive = [payload, ...backupArchive.filter(x=>x.id!==payload.id)].slice(0,20);
+    saveBackupArchive();
+    if(downloadAlso) downloadBackupPayload(payload);
+    return payload;
+  }
+  async function restoreBackupToFirebase(item){
+    if(!item || !item.years) throw new Error('Backup jest nieprawidłowy.');
+    if(!db || !currentUser) throw new Error('Najpierw zaloguj się do Firebase.');
+    const typed = prompt('Aby potwierdzić przywrócenie backupu do chmury, wpisz dokładnie: przywracambackup');
+    if(typed !== 'przywracambackup') throw new Error('Przywracanie anulowane.');
+    for(const [year, payload] of Object.entries(item.years)){
+      await db.ref(YEAR_DB_PATH(Number(year))).set(sanitizeStateForBackup(payload));
+    }
+    if(!backupPreview) switchYear(currentYear);
+  }
+  function enterBackupPreview(item){
+    if(!item || !item.years) return;
+    backupPreview = item;
+    liveYearBeforeBackupPreview = currentYear;
+    const targetYear = YEARS.includes(currentYear) && item.years[currentYear] ? currentYear : Number(Object.keys(item.years||{})[0] || currentYear);
+    if(targetYear === currentYear){
+      state = normalizeState(item.years[targetYear] || {});
       employees = state.employees.slice();
       render();
-      refreshAdminUI();
-      updateBackupPreviewInfo();
-      showToast(`podgląd backupu: ${rec.name}`, true);
-    } else {
-      activeBackupPreviewId = '';
-      localStorage.removeItem('nadgodziny_backup_preview_id');
-      render();
-      refreshAdminUI();
+      updateBackupPreviewUI();
+    }else{
+      currentYear = targetYear - 1;
+      switchYear(targetYear);
     }
-  } else {
-    render();
-    refreshAdminUI();
+    setBackupStatus(`Aktywny podgląd backupu: ${item.label || item.id}`, true);
   }
+  function exitBackupPreview(){
+    if(!backupPreview) return;
+    backupPreview = null;
+    updateBackupPreviewUI();
+    const restoreYear = liveYearBeforeBackupPreview || currentYear;
+    if(restoreYear === currentYear){
+      detachRemote();
+      dbRef = db ? db.ref(YEAR_DB_PATH(currentYear)) : null;
+      state = defaultState();
+      employees = state.employees.slice();
+      render();
+      if(currentUser && dbRef) subscribeRemote();
+    }else{
+      currentYear = restoreYear - 1;
+      switchYear(restoreYear);
+    }
+    setBackupStatus('Wyłączono podgląd backupu.', true);
+  }
+  async function importBackupFile(file){
+    const txt = await file.text();
+    const obj = JSON.parse(txt);
+    if(!obj || typeof obj !== 'object' || !obj.years || typeof obj.years !== 'object') throw new Error('To nie wygląda na poprawny backup nadgodzin.');
+    obj.id = obj.id || `bkp_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+    obj.createdAt = Number(obj.createdAt) || Date.now();
+    obj.label = obj.label || `Import ${new Date(obj.createdAt).toLocaleString('pl-PL')}`;
+    backupArchive = [obj, ...backupArchive.filter(x=>x.id!==obj.id)].slice(0,20);
+    saveBackupArchive();
+    return obj;
+  }
+
+  populateExportSelectors();
+  loadBackupArchive();
+  updateBackupPreviewUI();
+
+  if(els.backupList){
+    els.backupList.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('[data-backup-action]');
+      if(!btn) return;
+      const action = btn.getAttribute('data-backup-action');
+      const id = btn.getAttribute('data-backup-id');
+      const item = getBackupById(id);
+      if(!item) return;
+      try{
+        if(action==='preview') enterBackupPreview(item);
+        else if(action==='download') downloadBackupPayload(item);
+        else if(action==='delete'){
+          const ok = confirm('Usunąć ten backup z lokalnego archiwum tej przeglądarki?');
+          if(!ok) return;
+          backupArchive = backupArchive.filter(x=>x.id!==id);
+          if(backupPreview && backupPreview.id===id) exitBackupPreview();
+          saveBackupArchive();
+          setBackupStatus('Usunięto backup z archiwum.', true);
+        }else if(action==='restore'){
+          await restoreBackupToFirebase(item);
+          setBackupStatus('Przywrócono backup do chmury ✅', true);
+        }
+      }catch(err){ console.error(err); setBackupStatus(err.message || 'Operacja na backupie nie powiodła się.', false); }
+    });
+  }
+  if(els.backupCreateBtn) els.backupCreateBtn.addEventListener('click', async ()=>{ try{ setBackupStatus('Tworzę backup…', true); const payload = await createAndStoreBackup('Backup ręczny', true); setBackupStatus(`Utworzono backup: ${payload.label} ✅`, true); }catch(e){ console.error(e); setBackupStatus(e.message || 'Nie udało się utworzyć backupu.', false); } });
+  if(els.backupImportBtn) els.backupImportBtn.addEventListener('click', ()=>{ if(els.backupImportFile) els.backupImportFile.click(); });
+  if(els.backupImportFile) els.backupImportFile.addEventListener('change', async (e)=>{ const file = e.target.files && e.target.files[0]; if(!file) return; try{ const item = await importBackupFile(file); setBackupStatus(`Zaimportowano backup: ${item.label} ✅`, true); }catch(err){ console.error(err); setBackupStatus(err.message || 'Nie udało się zaimportować backupu.', false); } e.target.value=''; });
+  if(els.backupExitPreviewBtn) els.backupExitPreviewBtn.addEventListener('click', ()=> exitBackupPreview());
+
+  if(els.exportXlsxAllBtn) els.exportXlsxAllBtn.addEventListener('click', ()=> handleExport('all','xlsx'));
+  if(els.exportPdfAllBtn) els.exportPdfAllBtn.addEventListener('click', ()=> handleExport('all','pdf'));
+  if(els.exportXlsxYearBtn) els.exportXlsxYearBtn.addEventListener('click', ()=> handleExport('year','xlsx'));
+  if(els.exportPdfYearBtn) els.exportPdfYearBtn.addEventListener('click', ()=> handleExport('year','pdf'));
+  if(els.exportXlsxMonthBtn) els.exportXlsxMonthBtn.addEventListener('click', ()=> handleExport('month','xlsx'));
+  if(els.exportPdfMonthBtn) els.exportPdfMonthBtn.addEventListener('click', ()=> handleExport('month','pdf'));
+  if(els.exportXlsxRangeBtn) els.exportXlsxRangeBtn.addEventListener('click', ()=> handleExport('range','xlsx'));
+  if(els.exportPdfRangeBtn) els.exportPdfRangeBtn.addEventListener('click', ()=> handleExport('range','pdf'));
+  if(els.exportJsonBackupBtn) els.exportJsonBackupBtn.addEventListener('click', async ()=>{ try{ setExportStatus('Tworzę JSON backup…', true); const payload = await createBackupPayload('Backup JSON'); downloadBackupPayload(payload); setExportStatus('Pobrano JSON backup ✅', true); }catch(e){ console.error(e); setExportStatus(e.message || 'Nie udało się pobrać backupu JSON.', false); } });
+
+
+  render();
+  refreshAdminUI();
   enforceAccessGate();
   initFirebase();
 })();
