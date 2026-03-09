@@ -963,6 +963,10 @@
     const n = Number(s);
     return Number.isFinite(n) ? n : 0;
   }
+
+  function parsePLNumber(val){
+    return parseNum(val);
+  }
   const CODE_META = {
     U: { label: 'Urlop', cls: 'good' },
     O: { label: 'Opieka', cls: 'warn' },
