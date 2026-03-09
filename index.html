@@ -588,6 +588,54 @@
               <div id="secGlobalMsg" style="color:var(--muted); font-size:12px; margin-top:6px"></div>
             </div>
           </details>
+          <details id="adminExportDetails" class="admin-accordion" style="margin:0 0 16px 0; border:1px solid rgba(255,255,255,.12); border-radius:14px; background:rgba(255,255,255,.04); overflow:hidden">
+            <summary style="list-style:none; cursor:pointer; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px">
+              <span style="font-weight:700">Eksport / backup</span>
+              <span style="color:var(--muted); font-size:12px">XLSX • PDF • JSON</span>
+            </summary>
+            <div style="padding:12px 14px; border-top:1px solid rgba(255,255,255,.10)">
+              <div class="admin-note" style="margin:0 0 12px 0">Eksport pobiera dane z Firebase dla wybranego zakresu. XLSX zawiera dane dzienne + podsumowanie, PDF zawiera raport podsumowujący, a JSON tworzy pełny backup danych.</div>
+
+              <div class="admin-grid" style="grid-template-columns:repeat(2,minmax(220px,1fr)); gap:12px; margin:0 0 14px 0">
+                <div>
+                  <div class="modal-sub" style="margin:0 0 8px 0">Rok / miesiąc eksportu</div>
+                  <div style="display:flex; gap:10px; flex-wrap:wrap">
+                    <select id="exportYearSel"></select>
+                    <select id="exportMonthSel"></select>
+                  </div>
+                </div>
+                <div>
+                  <div class="modal-sub" style="margin:0 0 8px 0">Własny zakres dat</div>
+                  <div style="display:flex; gap:10px; flex-wrap:wrap">
+                    <input id="exportFrom" class="modal-input" type="date" style="min-width:170px" />
+                    <input id="exportTo" class="modal-input" type="date" style="min-width:170px" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal-sub" style="margin:0 0 8px 0">Eksport XLSX</div>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; margin:0 0 14px 0">
+                <button id="exportXlsxAllBtn" type="button" class="btn">Cały okres XLSX</button>
+                <button id="exportXlsxYearBtn" type="button" class="btn">Wybrany rok XLSX</button>
+                <button id="exportXlsxMonthBtn" type="button" class="btn">Wybrany miesiąc XLSX</button>
+                <button id="exportXlsxRangeBtn" type="button" class="btn">Własny zakres XLSX</button>
+              </div>
+
+              <div class="modal-sub" style="margin:0 0 8px 0">Eksport PDF</div>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; margin:0 0 14px 0">
+                <button id="exportPdfAllBtn" type="button" class="btn">Cały okres PDF</button>
+                <button id="exportPdfYearBtn" type="button" class="btn">Wybrany rok PDF</button>
+                <button id="exportPdfMonthBtn" type="button" class="btn">Wybrany miesiąc PDF</button>
+                <button id="exportPdfRangeBtn" type="button" class="btn">Własny zakres PDF</button>
+              </div>
+
+              <div class="modal-sub" style="margin:0 0 8px 0">Backup</div>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+                <button id="exportJsonBackupBtn" type="button" class="btn-primary">Pobierz JSON backup</button>
+                <span id="exportMsg" style="color:var(--muted); font-size:12px"></span>
+              </div>
+            </div>
+          </details>
 <details id="adminEmployeesDetails" class="admin-accordion" style="margin:0 0 16px 0; border:1px solid rgba(255,255,255,.12); border-radius:14px; background:rgba(255,255,255,.04); overflow:hidden" open><summary style="list-style:none; cursor:pointer; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px"><span style="font-weight:700">Pracownicy</span><span style="color:var(--muted); font-size:12px">lista wspólna</span></summary><div style="padding:12px 14px; border-top:1px solid rgba(255,255,255,.10)"><div class="modal-sub" style="margin:0 0 10px 0">Zarządzanie pracownikami (lista wspólna dla wszystkich lat)</div>
 
           <div class="admin-grid">
@@ -663,6 +711,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 <script src="./firebase_config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script>
 
 (() => {
@@ -779,6 +830,22 @@
     accessPass: document.getElementById('accessPass'),
     accessOpenBtn: document.getElementById('accessOpenBtn'),
     accessMsg: document.getElementById('accessMsg'),
+
+    // Export
+    exportYearSel: document.getElementById('exportYearSel'),
+    exportMonthSel: document.getElementById('exportMonthSel'),
+    exportFrom: document.getElementById('exportFrom'),
+    exportTo: document.getElementById('exportTo'),
+    exportMsg: document.getElementById('exportMsg'),
+    exportXlsxAllBtn: document.getElementById('exportXlsxAllBtn'),
+    exportXlsxYearBtn: document.getElementById('exportXlsxYearBtn'),
+    exportXlsxMonthBtn: document.getElementById('exportXlsxMonthBtn'),
+    exportXlsxRangeBtn: document.getElementById('exportXlsxRangeBtn'),
+    exportPdfAllBtn: document.getElementById('exportPdfAllBtn'),
+    exportPdfYearBtn: document.getElementById('exportPdfYearBtn'),
+    exportPdfMonthBtn: document.getElementById('exportPdfMonthBtn'),
+    exportPdfRangeBtn: document.getElementById('exportPdfRangeBtn'),
+    exportJsonBackupBtn: document.getElementById('exportJsonBackupBtn'),
 
   };
 
@@ -1523,6 +1590,7 @@ function normalizeCellValue(val){
     setPicker(els.adminColorZ, cc.Z);
     if(els.adminResetColors) els.adminResetColors.disabled = !on;
     renderAdminLockControls();
+    renderAdminExportControls();
   
     updateSecurityStatusUI();
 }
@@ -1541,6 +1609,7 @@ function normalizeCellValue(val){
     refreshAdminUI();
     if(isAdmin()){
       renderAdminEmployees();
+      renderAdminExportControls();
     }else{
       setTimeout(()=>{ if(els.adminPass) els.adminPass.focus(); }, 50);
     }
@@ -3085,6 +3154,333 @@ if(typed !== phrase){
     else renderSummary();
   }
 
+
+  function setExportMsg(text, ok=true){
+    if(!els.exportMsg) return;
+    els.exportMsg.textContent = text || '';
+    els.exportMsg.style.color = ok ? 'var(--muted)' : '#ffd0d0';
+  }
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function makeDateStr(y,m,d){ return `${y}-${pad2(m)}-${pad2(d)}`; }
+  function monthDisplayName(month){ return monthNames[(Number(month)||1)-1] || ''; }
+  function rangeLabelFromDates(from,to){
+    return from === to ? from : `${from} do ${to}`;
+  }
+  function downloadBlob(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 500);
+  }
+  function renderAdminExportControls(){
+    const on = isAdmin();
+    if(els.exportYearSel){
+      const prev = Number(els.exportYearSel.value) || currentYear;
+      els.exportYearSel.innerHTML = YEARS.map(y=>`<option value="${y}" ${y===prev?'selected':''}>${y}</option>`).join('');
+      els.exportYearSel.disabled = !on;
+      if(!YEARS.includes(Number(els.exportYearSel.value))) els.exportYearSel.value = String(currentYear);
+    }
+    if(els.exportMonthSel){
+      const prevM = Number(els.exportMonthSel.value) || currentMonth;
+      els.exportMonthSel.innerHTML = monthNames.map((name, idx)=>`<option value="${idx+1}" ${(idx+1)===prevM?'selected':''}>${name}</option>`).join('');
+      els.exportMonthSel.disabled = !on;
+      if(!(Number(els.exportMonthSel.value)>=1 && Number(els.exportMonthSel.value)<=12)) els.exportMonthSel.value = String(currentMonth);
+    }
+    const expY = Number((els.exportYearSel && els.exportYearSel.value) || currentYear);
+    const expM = Number((els.exportMonthSel && els.exportMonthSel.value) || currentMonth);
+    if(els.exportFrom && !els.exportFrom.value) els.exportFrom.value = makeDateStr(currentYear, currentMonth, 1);
+    if(els.exportTo && !els.exportTo.value) els.exportTo.value = makeDateStr(currentYear, currentMonth, daysInMonth(currentYear, currentMonth));
+    if(els.exportMonthSel && els.exportYearSel){
+      const monthFrom = makeDateStr(expY, expM, 1);
+      const monthTo = makeDateStr(expY, expM, daysInMonth(expY, expM));
+      if(els.exportFrom.dataset.autoMonth === '1' || !els.exportFrom.value) els.exportFrom.value = monthFrom;
+      if(els.exportTo.dataset.autoMonth === '1' || !els.exportTo.value) els.exportTo.value = monthTo;
+    }
+    ['exportXlsxAllBtn','exportXlsxYearBtn','exportXlsxMonthBtn','exportXlsxRangeBtn','exportPdfAllBtn','exportPdfYearBtn','exportPdfMonthBtn','exportPdfRangeBtn','exportJsonBackupBtn'].forEach(k=>{
+      if(els[k]) els[k].disabled = !on;
+    });
+  }
+  async function fetchNormalizedYearState(year){
+    const y = Number(year);
+    if(y === currentYear){
+      const local = normalizeState(state);
+      local.year = y;
+      return local;
+    }
+    try{
+      if(db && currentUser){
+        const snap = await db.ref(YEAR_DB_PATH(y)).once('value');
+        const raw = snap.val();
+        const out = raw ? normalizeState(raw) : defaultState();
+        out.year = y;
+        return out;
+      }
+    }catch(e){
+      console.error(e);
+    }
+    const fallback = defaultState();
+    fallback.year = y;
+    return fallback;
+  }
+  async function fetchYearsMap(years){
+    const out = {};
+    for(const y of years){ out[y] = await fetchNormalizedYearState(y); }
+    return out;
+  }
+  function getCodesForExport(yearMap){
+    const pref = ['U','O','L4','UT','T','Z'];
+    const set = new Set(pref);
+    Object.values(yearMap || {}).forEach(ys=>{
+      const cc = ys && ys.settings && ys.settings.codeColors && typeof ys.settings.codeColors === 'object' ? ys.settings.codeColors : {};
+      Object.keys(cc).forEach(k=>set.add(k));
+    });
+    return Array.from(set);
+  }
+  function getEmployeesForExport(yearMap){
+    const list = new Set();
+    Object.values(yearMap || {}).forEach(ys=>{
+      (ys && Array.isArray(ys.employees) ? ys.employees : []).forEach(emp=>list.add(emp));
+    });
+    return sortEmployees(Array.from(list));
+  }
+  function buildExportDataset(yearMap, rangeStart, rangeEnd, meta){
+    const years = Object.keys(yearMap).map(Number).sort((a,b)=>a-b);
+    const employeesList = getEmployeesForExport(yearMap);
+    const codes = getCodesForExport(yearMap);
+    const rows = [];
+    const summaryMap = {};
+    const monthlyMap = {};
+    employeesList.forEach(emp=>{
+      const entry = { 'Pracownik': emp, 'Saldo': 0, 'Status': 'OK' };
+      codes.forEach(code=> entry[code] = 0);
+      summaryMap[emp] = entry;
+    });
+    years.forEach(year=>{
+      const ys = yearMap[year] || defaultState();
+      employeesList.forEach(emp=>{
+        for(let month=1; month<=12; month++){
+          const dim = daysInMonth(year, month);
+          const arr = (ys.months && ys.months[month] && Array.isArray(ys.months[month][emp])) ? ys.months[month][emp] : Array(31).fill('');
+          let monthSaldo = 0;
+          for(let day=1; day<=dim; day++){
+            const iso = makeDateStr(year, month, day);
+            if(iso < rangeStart || iso > rangeEnd) continue;
+            const raw = arr[day-1] ?? '';
+            const value = normalizeCellValue(raw);
+            const numeric = parseNum(value);
+            const code = isTrackedCode(value) ? value : '';
+            const holiday = holidayName(year, month, day);
+            const weekend = isWeekend(year, month, day);
+            rows.push({
+              'Data': iso,
+              'Rok': year,
+              'Miesiąc nr': month,
+              'Miesiąc': monthDisplayName(month),
+              'Dzień': day,
+              'Dzień tygodnia': weekdayPL(year, month, day),
+              'Pracownik': emp,
+              'Wartość': value,
+              'Liczba godzin': value && !code ? numeric : '',
+              'Kod': code,
+              'Opis': code ? getCodeLabel(code) : '',
+              'Weekend': weekend ? 'TAK' : '',
+              'Święto': holiday || '',
+              'Miesiąc zamknięty': (ys.settings && (ys.settings.yearLocked || (ys.settings.monthLocks && ys.settings.monthLocks[month]))) ? 'TAK' : '',
+            });
+            if(code) summaryMap[emp][code] = (summaryMap[emp][code] || 0) + 1;
+            if(value && !code && Number.isFinite(numeric)){
+              summaryMap[emp]['Saldo'] += numeric;
+              monthSaldo += numeric;
+            }
+          }
+          const monthKey = `${year}-${pad2(month)}-${emp}`;
+          monthlyMap[monthKey] = {
+            'Rok': year,
+            'Miesiąc nr': month,
+            'Miesiąc': monthDisplayName(month),
+            'Pracownik': emp,
+            'Saldo miesiąca': monthSaldo
+          };
+        }
+      });
+    });
+    const summaryRows = employeesList.map(emp=>{
+      const row = summaryMap[emp];
+      row['Saldo'] = Number((Math.round((row['Saldo'] || 0) * 10) / 10).toFixed(1));
+      row['Status'] = statusFromSaldo(row['Saldo']);
+      return row;
+    });
+    const monthlyRows = Object.values(monthlyMap).filter(r=>{
+      const monthStart = makeDateStr(r['Rok'], r['Miesiąc nr'], 1);
+      const monthEnd = makeDateStr(r['Rok'], r['Miesiąc nr'], daysInMonth(r['Rok'], r['Miesiąc nr']));
+      return !(monthEnd < rangeStart || monthStart > rangeEnd);
+    }).map(r=>({ ...r, 'Saldo miesiąca': Number((Math.round((r['Saldo miesiąca'] || 0) * 10) / 10).toFixed(1)) }));
+    return { years, codes, rows, summaryRows, monthlyRows, meta };
+  }
+  async function getDatasetForMode(mode){
+    let years = [];
+    let rangeStart = '';
+    let rangeEnd = '';
+    let label = '';
+    if(mode === 'all'){
+      years = YEARS.slice();
+      rangeStart = makeDateStr(YEARS[0],1,1);
+      rangeEnd = makeDateStr(YEARS[YEARS.length-1],12,31);
+      label = `cały okres ${YEARS[0]}-${YEARS[YEARS.length-1]}`;
+    } else if(mode === 'year'){
+      const year = Number((els.exportYearSel && els.exportYearSel.value) || currentYear);
+      years = [year];
+      rangeStart = makeDateStr(year,1,1);
+      rangeEnd = makeDateStr(year,12,31);
+      label = `rok ${year}`;
+    } else if(mode === 'month'){
+      const year = Number((els.exportYearSel && els.exportYearSel.value) || currentYear);
+      const month = Number((els.exportMonthSel && els.exportMonthSel.value) || currentMonth);
+      years = [year];
+      rangeStart = makeDateStr(year,month,1);
+      rangeEnd = makeDateStr(year,month,daysInMonth(year,month));
+      label = `${monthDisplayName(month)} ${year}`;
+    } else if(mode === 'range'){
+      const from = (els.exportFrom && els.exportFrom.value) || '';
+      const to = (els.exportTo && els.exportTo.value) || '';
+      if(!from || !to) throw new Error('Uzupełnij obie daty zakresu.');
+      if(from > to) throw new Error('Data „od” nie może być późniejsza niż data „do”.');
+      rangeStart = from;
+      rangeEnd = to;
+      const fromY = Number(from.slice(0,4));
+      const toY = Number(to.slice(0,4));
+      years = YEARS.filter(y => y >= fromY && y <= toY);
+      label = `zakres ${rangeLabelFromDates(from, to)}`;
+    } else {
+      throw new Error('Nieznany tryb eksportu.');
+    }
+    setExportMsg(`Pobieram dane: ${label}…`);
+    const yearMap = await fetchYearsMap(years);
+    return buildExportDataset(yearMap, rangeStart, rangeEnd, {
+      mode,
+      label,
+      rangeStart,
+      rangeEnd,
+      generatedAt: new Date().toLocaleString('pl-PL'),
+      exportedByYear: currentYear,
+    });
+  }
+  function addSheetFromJson(wb, data, name){
+    const ws = XLSX.utils.json_to_sheet(data);
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    const cols = [];
+    for(let c=range.s.c; c<=range.e.c; c++){
+      let max = 10;
+      for(let r=range.s.r; r<=range.e.r; r++){
+        const cell = ws[XLSX.utils.encode_cell({r,c})];
+        const len = String(cell ? cell.v ?? '' : '').length;
+        if(len > max) max = len;
+      }
+      cols.push({wch: Math.min(max + 2, 28)});
+    }
+    ws['!cols'] = cols;
+    XLSX.utils.book_append_sheet(wb, ws, name.slice(0,31));
+  }
+  function exportDatasetToXlsx(dataset){
+    if(typeof XLSX === 'undefined') throw new Error('Biblioteka XLSX nie została załadowana.');
+    const wb = XLSX.utils.book_new();
+    const params = [{
+      'Zakres': dataset.meta.label,
+      'Od': dataset.meta.rangeStart,
+      'Do': dataset.meta.rangeEnd,
+      'Wygenerowano': dataset.meta.generatedAt,
+      'Liczba wierszy danych': dataset.rows.length,
+      'Liczba pracowników': dataset.summaryRows.length,
+    }];
+    addSheetFromJson(wb, params, 'Parametry');
+    addSheetFromJson(wb, dataset.summaryRows, 'Podsumowanie');
+    addSheetFromJson(wb, dataset.monthlyRows, 'Saldo miesięczne');
+    addSheetFromJson(wb, dataset.rows, 'Dane dzienne');
+    const file = `nadgodziny_${dataset.meta.mode}_${dataset.meta.rangeStart}_${dataset.meta.rangeEnd}.xlsx`;
+    XLSX.writeFile(wb, file);
+  }
+  function exportDatasetToPdf(dataset){
+    if(!(window.jspdf && window.jspdf.jsPDF)) throw new Error('Biblioteka PDF nie została załadowana.');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(18);
+    doc.text('Raport nadgodzin / nieobecności', 40, 42);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(10);
+    doc.text(`Zakres: ${dataset.meta.label}`, 40, 62);
+    doc.text(`Daty: ${dataset.meta.rangeStart} — ${dataset.meta.rangeEnd}`, 40, 76);
+    doc.text(`Wygenerowano: ${dataset.meta.generatedAt}`, 40, 90);
+    const codeHeaders = dataset.codes.slice();
+    const head = [['Pracownik', ...codeHeaders, 'Saldo', 'Status']];
+    const body = dataset.summaryRows.map(r => [r['Pracownik'], ...codeHeaders.map(k => String(r[k] ?? 0)), String(r['Saldo']), r['Status']]);
+    doc.autoTable({
+      startY: 108,
+      head,
+      body,
+      styles: { fontSize: 8, cellPadding: 4 },
+      headStyles: { fillColor: [34, 52, 86] },
+      alternateRowStyles: { fillColor: [245, 248, 252] },
+      margin: { left: 40, right: 40 }
+    });
+    const detailRows = dataset.rows.filter(r => String(r['Wartość'] || '').trim() !== '');
+    const capped = detailRows.slice(0, 350);
+    let startY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 18 : 140;
+    if(startY > 480){ doc.addPage(); startY = 40; }
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(12);
+    doc.text(`Wpisy niepuste${detailRows.length > capped.length ? ` (pierwsze ${capped.length} z ${detailRows.length})` : ''}`, 40, startY);
+    doc.autoTable({
+      startY: startY + 10,
+      head: [['Data','Pracownik','Wartość','Opis','Święto'] ],
+      body: capped.map(r => [r['Data'], r['Pracownik'], r['Wartość'], r['Opis'], r['Święto'] || '']),
+      styles: { fontSize: 7, cellPadding: 3 },
+      headStyles: { fillColor: [34, 52, 86] },
+      margin: { left: 40, right: 40 }
+    });
+    const file = `nadgodziny_${dataset.meta.mode}_${dataset.meta.rangeStart}_${dataset.meta.rangeEnd}.pdf`;
+    doc.save(file);
+  }
+  async function exportJsonBackup(){
+    const yearsMap = await fetchYearsMap(YEARS);
+    const backup = {
+      generatedAt: new Date().toISOString(),
+      period: { start: makeDateStr(YEARS[0],1,1), end: makeDateStr(YEARS[YEARS.length-1],12,31) },
+      years: yearsMap,
+      securityMeta: {
+        hasAdminPassword: !!(sharedSettings && sharedSettings.adminPassword),
+        hasGlobalAccessPassword: !!(sharedSettings && sharedSettings.globalAccessPassword)
+      }
+    };
+    downloadBlob(new Blob([JSON.stringify(backup, null, 2)], {type:'application/json;charset=utf-8'}), `nadgodziny_backup_${YEARS[0]}_${YEARS[YEARS.length-1]}.json`);
+  }
+  async function runExport(kind, mode){
+    if(!isAdmin()){
+      openAdminModal();
+      showAdminMsg('Najpierw zaloguj się jako admin.', false);
+      return;
+    }
+    if(!db || !currentUser){
+      alert('Eksport wymaga aktywnego połączenia z Firebase i zalogowania do wspólnej bazy.');
+      return;
+    }
+    try{
+      const dataset = await getDatasetForMode(mode);
+      setExportMsg(`Tworzę ${kind.toUpperCase()}…`);
+      if(kind === 'xlsx') exportDatasetToXlsx(dataset);
+      else if(kind === 'pdf') exportDatasetToPdf(dataset);
+      setExportMsg(`Gotowe: ${kind.toUpperCase()} • ${dataset.meta.label} ✅`);
+    }catch(e){
+      console.error(e);
+      setExportMsg(e.message || 'Błąd eksportu', false);
+      alert(`Błąd eksportu: ${e.message || e}`);
+    }
+  }
+
   function populateYearSelectors(){
     if(els.yearSel) els.yearSel.innerHTML = YEARS.map(y=>`<option value="${y}" ${y===currentYear?'selected':''}>${y}</option>`).join('');
     if(els.adminLockYearSel) els.adminLockYearSel.innerHTML = YEARS.map(y=>`<option value="${y}" ${y===adminLockYear?'selected':''}>${y}</option>`).join('');
@@ -3157,6 +3553,39 @@ if(typed !== phrase){
         await saveRemote(false);
         alert("Wyczyszczono dane w chmurze ✅");
       } catch(e) {}
+    }
+  });
+
+
+  if(els.exportYearSel) els.exportYearSel.addEventListener('change', ()=>{
+    if(els.exportFrom) els.exportFrom.dataset.autoMonth = '1';
+    if(els.exportTo) els.exportTo.dataset.autoMonth = '1';
+    renderAdminExportControls();
+  });
+  if(els.exportMonthSel) els.exportMonthSel.addEventListener('change', ()=>{
+    if(els.exportFrom) els.exportFrom.dataset.autoMonth = '1';
+    if(els.exportTo) els.exportTo.dataset.autoMonth = '1';
+    renderAdminExportControls();
+  });
+  if(els.exportFrom) els.exportFrom.addEventListener('input', ()=>{ els.exportFrom.dataset.autoMonth = '0'; });
+  if(els.exportTo) els.exportTo.addEventListener('input', ()=>{ els.exportTo.dataset.autoMonth = '0'; });
+  if(els.exportXlsxAllBtn) els.exportXlsxAllBtn.addEventListener('click', ()=>runExport('xlsx','all'));
+  if(els.exportXlsxYearBtn) els.exportXlsxYearBtn.addEventListener('click', ()=>runExport('xlsx','year'));
+  if(els.exportXlsxMonthBtn) els.exportXlsxMonthBtn.addEventListener('click', ()=>runExport('xlsx','month'));
+  if(els.exportXlsxRangeBtn) els.exportXlsxRangeBtn.addEventListener('click', ()=>runExport('xlsx','range'));
+  if(els.exportPdfAllBtn) els.exportPdfAllBtn.addEventListener('click', ()=>runExport('pdf','all'));
+  if(els.exportPdfYearBtn) els.exportPdfYearBtn.addEventListener('click', ()=>runExport('pdf','year'));
+  if(els.exportPdfMonthBtn) els.exportPdfMonthBtn.addEventListener('click', ()=>runExport('pdf','month'));
+  if(els.exportPdfRangeBtn) els.exportPdfRangeBtn.addEventListener('click', ()=>runExport('pdf','range'));
+  if(els.exportJsonBackupBtn) els.exportJsonBackupBtn.addEventListener('click', async ()=>{
+    try{
+      setExportMsg('Tworzę backup JSON…');
+      await exportJsonBackup();
+      setExportMsg('Backup JSON gotowy ✅');
+    }catch(e){
+      console.error(e);
+      setExportMsg(e.message || 'Błąd backupu', false);
+      alert(`Błąd backupu: ${e.message || e}`);
     }
   });
 
