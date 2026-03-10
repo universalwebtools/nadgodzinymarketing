@@ -760,7 +760,10 @@
 
 (() => {
   const YEARS = Array.from({length:11}, (_,i)=>2025+i);
-  let currentYear = Number(localStorage.getItem('nadgodziny_current_year')) || 2026;
+  const now = new Date();
+  const actualCurrentYear = now.getFullYear();
+  const actualCurrentMonth = now.getMonth() + 1;
+  let currentYear = YEARS.includes(actualCurrentYear) ? actualCurrentYear : (Number(localStorage.getItem('nadgodziny_current_year')) || 2026);
   if(!YEARS.includes(currentYear)) currentYear = 2026;
   const monthNames = ["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
   const DB_BASE = `nadgodziny`;
@@ -1358,7 +1361,7 @@ function normalizeCellValue(val){
 
   let state = defaultState();
   let employees = state.employees.slice();
-  let currentMonth = 1;
+  let currentMonth = (currentYear === actualCurrentYear && actualCurrentMonth >= 1 && actualCurrentMonth <= 12) ? actualCurrentMonth : 1;
   let currentView = "month";
   let selectedAbsenceEmp = null;
   let adminLockYear = currentYear;
@@ -2386,6 +2389,7 @@ if(typed !== phrase){
       btn.addEventListener('click', ()=>{
         currentMonth = m;
         currentView = "month";
+        localStorage.setItem('nadgodziny_current_month', String(currentMonth));
         els.viewSel.value = "month";
         render();
       });
@@ -2874,6 +2878,7 @@ if(typed !== phrase){
       btn.addEventListener('click', ()=>{
         currentMonth = m;
         currentView = "month";
+        localStorage.setItem('nadgodziny_current_month', String(currentMonth));
         els.viewSel.value = "month";
         render();
       });
@@ -3258,7 +3263,9 @@ if(typed !== phrase){
     if(!YEARS.includes(year) || year===currentYear) return;
     detachRemote();
     currentYear = year;
+    currentMonth = (currentYear === actualCurrentYear && actualCurrentMonth >= 1 && actualCurrentMonth <= 12) ? actualCurrentMonth : 1;
     localStorage.setItem('nadgodziny_current_year', String(currentYear));
+    localStorage.setItem('nadgodziny_current_month', String(currentMonth));
     els.yearLabel.textContent = currentYear;
     const sub = document.querySelector('.title .sub');
     if(sub) sub.innerHTML = `Wersja online (Firebase) • Rok <b>${currentYear}</b> • Wspólny zapis/odczyt dla całego działu`;
@@ -3713,6 +3720,12 @@ if(typed !== phrase){
   if(els.exportPdfRangeBtn) els.exportPdfRangeBtn.addEventListener('click', ()=> handleExport('range','pdf'));
   if(els.exportJsonBackupBtn) els.exportJsonBackupBtn.addEventListener('click', async ()=>{ try{ setExportStatus('Tworzę JSON backup…', true); const payload = await createBackupPayload('Backup JSON'); downloadBackupPayload(payload); setExportStatus('Pobrano JSON backup ✅', true); }catch(e){ console.error(e); setExportStatus(e.message || 'Nie udało się pobrać backupu JSON.', false); } });
 
+
+  if(currentYear === actualCurrentYear && actualCurrentMonth >= 1 && actualCurrentMonth <= 12){
+    currentMonth = actualCurrentMonth;
+    localStorage.setItem('nadgodziny_current_year', String(currentYear));
+    localStorage.setItem('nadgodziny_current_month', String(currentMonth));
+  }
 
   render();
   refreshAdminUI();
