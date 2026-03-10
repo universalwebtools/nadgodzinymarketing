@@ -680,6 +680,7 @@
               <div style="padding:12px; border:1px solid rgba(255,255,255,.10); border-radius:12px; background:rgba(255,255,255,.03)">
                 <div style="font-weight:700; margin-bottom:8px">Wymazywanie danych z kalendarza</div>
                 <div style="color:var(--muted); font-size:12px; margin-bottom:8px">Usuń wpisy wszystkich pracowników z wybranego zakresu dat. Lista pracowników pozostanie bez zmian.</div>
+                <div style="color:var(--muted); font-size:12px; margin:-2px 0 8px 0">Ten sam zakres dat działa też dla przycisku <b>Wymaż okres</b> przy konkretnym pracowniku.</div>
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px">
                   <input id="adminEraseFrom" class="modal-input" type="date" style="max-width:170px" />
                   <input id="adminEraseTo" class="modal-input" type="date" style="max-width:170px" />
@@ -1728,12 +1729,27 @@ function normalizeCellValue(val){
     if(els.adminEraseFrom && !els.adminEraseFrom.value) els.adminEraseFrom.value = `${currentYear}-${String(currentMonth).padStart(2,'0')}-01`;
     if(els.adminEraseTo && !els.adminEraseTo.value) els.adminEraseTo.value = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(daysInMonth(currentYear, currentMonth)).padStart(2,'0')}`;
   }
-  async function eraseCalendarRange(){
-    if(!isAdmin()) return;
+  function getAdminEraseRange(){
     const from = String(els.adminEraseFrom && els.adminEraseFrom.value || '').trim();
     const to = String(els.adminEraseTo && els.adminEraseTo.value || '').trim();
-    if(!from || !to){ setAdminEraseMsg('Wybierz obie daty zakresu.', false); return; }
-    if(from > to){ setAdminEraseMsg('Data „od” nie może być późniejsza niż data „do”.', false); return; }
+    if(!from || !to) throw new Error('Wybierz obie daty zakresu.');
+    if(from > to) throw new Error('Data „od” nie może być późniejsza niż data „do”.');
+    const yearStart = Number(from.slice(0,4));
+    const yearEnd = Number(to.slice(0,4));
+    const years = YEARS.filter(y=>y>=yearStart && y<=yearEnd);
+    if(!years.length) throw new Error('Zakres nie obejmuje obsługiwanych lat.');
+    return { from, to, yearStart, yearEnd, years };
+  }
+  async function eraseCalendarRange(){
+    if(!isAdmin()) return;
+    let range;
+    try{
+      range = getAdminEraseRange();
+    }catch(err){
+      setAdminEraseMsg(err.message || 'Nieprawidłowy zakres dat.', false);
+      return;
+    }
+    const { from, to, yearStart, yearEnd, years } = range;
     const typed = prompt(`Aby potwierdzić wymazanie danych z zakresu ${formatDatePL(from)} – ${formatDatePL(to)}, wpisz dokładnie: USUN ZAKRES`);
     if(typed !== 'USUN ZAKRES'){
       setAdminEraseMsg('Wymazywanie anulowane.', false);
@@ -1743,11 +1759,6 @@ function normalizeCellValue(val){
       setAdminEraseMsg('Najpierw zaloguj się do Firebase.', false);
       return;
     }
-
-    const yearStart = Number(from.slice(0,4));
-    const yearEnd = Number(to.slice(0,4));
-    const years = YEARS.filter(y=>y>=yearStart && y<=yearEnd);
-    if(!years.length){ setAdminEraseMsg('Zakres nie obejmuje obsługiwanych lat.', false); return; }
 
     setAdminEraseMsg('Wymazuję dane z wybranego zakresu…', true);
     try{
@@ -1799,6 +1810,74 @@ function normalizeCellValue(val){
       setAdminEraseMsg(e.message || 'Nie udało się usunąć danych z zakresu.', false);
     }
   }
+  async function eraseEmployeeRange(employeeName){
+    if(!isAdmin()) return;
+    const target = String(employeeName || '').trim();
+    if(!target){ setAdminEraseMsg('Nie wybrano pracownika do wymazania.', false); return; }
+    let range;
+    try{
+      range = getAdminEraseRange();
+    }catch(err){
+      setAdminEraseMsg(err.message || 'Nieprawidłowy zakres dat.', false);
+      return;
+    }
+    const { from, to, yearStart, yearEnd, years } = range;
+    const typed = prompt(`Aby potwierdzić wymazanie wpisów pracownika ${target} z zakresu ${formatDatePL(from)} – ${formatDatePL(to)}, wpisz dokładnie: USUN OKRES`);
+    if(typed !== 'USUN OKRES'){
+      setAdminEraseMsg('Wymazywanie pracownika anulowane.', false);
+      return;
+    }
+    if (!db || !currentUser) {
+      setAdminEraseMsg('Najpierw zaloguj się do Firebase.', false);
+      return;
+    }
+
+    setAdminEraseMsg(`Wymazuję zakres dla pracownika ${target}…`, true);
+    try{
+      for(const y of years){
+        const snap = await db.ref(YEAR_DB_PATH(y)).once('value');
+        const yearState = normalizeState(snap.val());
+        const yearEmployees = Array.isArray(yearState.employees) && yearState.employees.length ? yearState.employees.slice() : employees.slice();
+        for(let m=1; m<=12; m++){
+          if(!yearState.months[m]) yearState.months[m] = {};
+          const dim = daysInMonth(y,m);
+          if(!Array.isArray(yearState.months[m][target])) yearState.months[m][target] = Array(31).fill('');
+          for(let d=1; d<=dim; d++){
+            const iso = formatDateISO(y,m,d);
+            if(iso < from || iso > to) continue;
+            yearState.months[m][target][d-1] = '';
+          }
+        }
+        yearState.updatedAt = Date.now();
+        await db.ref(YEAR_DB_PATH(y)).set({
+          year: y,
+          updatedAt: yearState.updatedAt,
+          employees: anonymizeEmployeeList((yearState.employees||yearEmployees).slice()),
+          months: JSON.parse(JSON.stringify(yearState.months || {})),
+          settings: JSON.parse(JSON.stringify(yearState.settings || { holidaysEnabled: true }))
+        });
+      }
+
+      if(currentYear >= yearStart && currentYear <= yearEnd){
+        for(let m=1; m<=12; m++){
+          const dim = daysInMonth(currentYear,m);
+          if(!state.months[m]) state.months[m] = {};
+          if(!Array.isArray(state.months[m][target])) state.months[m][target] = Array(31).fill('');
+          for(let d=1; d<=dim; d++){
+            const iso = formatDateISO(currentYear,m,d);
+            if(iso < from || iso > to) continue;
+            state.months[m][target][d-1] = '';
+          }
+        }
+      }
+      render();
+      setAdminEraseMsg(`Usunięto wpisy pracownika ${target} z zakresu ${formatDatePL(from)} – ${formatDatePL(to)} ✅`, true);
+      showAdminMsg(`Usunięto wybrany okres dla pracownika ${target} ✅`, true);
+    }catch(e){
+      console.error(e);
+      setAdminEraseMsg(e.message || 'Nie udało się usunąć danych pracownika z zakresu.', false);
+    }
+  }
 
   function renderAdminEmployees(){
     if(!els.adminEmpList) return;
@@ -1816,6 +1895,11 @@ function normalizeCellValue(val){
       saveBtn.type = 'button';
       saveBtn.className = 'btn-primary';
       saveBtn.textContent = 'Zapisz';
+
+      const eraseBtn = document.createElement('button');
+      eraseBtn.type = 'button';
+      eraseBtn.className = 'btn';
+      eraseBtn.textContent = 'Wymaż okres';
 
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
@@ -1851,6 +1935,12 @@ function normalizeCellValue(val){
         await saveRemote(false).catch(()=>{});
       });
 
+      eraseBtn.addEventListener('click', async ()=>{
+        if(!isAdmin()) return;
+        const name = inp.getAttribute('data-old');
+        await eraseEmployeeRange(name);
+      });
+
       delBtn.addEventListener('click', async ()=>{
         if(!isAdmin()) return;
         const name = inp.getAttribute('data-old');
@@ -1880,6 +1970,7 @@ function normalizeCellValue(val){
 
       row.appendChild(inp);
       row.appendChild(saveBtn);
+      row.appendChild(eraseBtn);
       row.appendChild(delBtn);
       els.adminEmpList.appendChild(row);
     });
