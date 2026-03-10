@@ -680,11 +680,13 @@
             <div class="modal-sub">Zaloguj się loginem działu, aby odczytywać i zapisywać dane online</div>
           </div>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" autocomplete="off">
+          <input type="text" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0;pointer-events:none" />
+          <input type="password" autocomplete="new-password" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0;pointer-events:none" />
           <label class="modal-label" for="fbEmail">Login</label>
-          <input id="fbEmail" class="modal-input" type="text" autocomplete="username" placeholder="marketing" value="marketing" />
+          <input id="fbEmail" class="modal-input" type="text" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" placeholder="Wpisz login" />
           <label class="modal-label" for="fbPass" style="margin-top:10px">Hasło</label>
-          <input id="fbPass" class="modal-input" type="password" autocomplete="current-password" placeholder="terefere" value="terefere" />
+          <input id="fbPass" class="modal-input" type="password" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Wpisz hasło" data-lpignore="true" data-1p-ignore="true" />
           <div id="fbAuthMsg" class="modal-msg" style="display:none"></div>
         </div>
         <div class="modal-actions">
@@ -695,45 +697,16 @@
   `);
 
   const defaultEmployees = [
-    "EMP-001",
-    "EMP-002",
-    "EMP-003",
-    "EMP-004",
-    "EMP-005",
-    "EMP-006",
-    "EMP-007",
-    "EMP-008",
-    "EMP-009",
+    "Anita Kos",
+    "Anita Bucka",
+    "Joanna Knycz",
+    "Agnieszka Panek",
+    "Marta Bogusz",
+    "Rafał Kukla",
+    "Maria Halotta",
+    "Zuzanna Jadczyk",
+    "Hania Danielczyk",
   ];
-  const LEGACY_EMPLOYEE_MAP = {
-    "Anita Kos": "EMP-001",
-    "Anita Bucka": "EMP-002",
-    "Joanna Knycz": "EMP-003",
-    "Agnieszka Panek": "EMP-004",
-    "Marta Bogusz": "EMP-005",
-    "Rafał Kukla": "EMP-006",
-    "Maria Halotta": "EMP-007",
-    "Zuzanna Jadczyk": "EMP-008",
-    "Hania Danielczyk": "EMP-009",
-  };
-  function anonymizeEmployeeName(name){
-    const key = String(name || '').trim();
-    return LEGACY_EMPLOYEE_MAP[key] || key;
-  }
-  function anonymizeEmployeeList(list){
-    return Array.from(new Set((list || []).map(anonymizeEmployeeName).filter(Boolean)));
-  }
-  function anonymizeMonthRows(monthObj){
-    const src = (monthObj && typeof monthObj === 'object') ? monthObj : {};
-    const out = {};
-    for (const [emp, arr] of Object.entries(src)) {
-      const mapped = anonymizeEmployeeName(emp);
-      if (!mapped) continue;
-      if (!out[mapped]) out[mapped] = Array.isArray(arr) ? arr.slice() : [];
-      else if (Array.isArray(arr) && arr.some(v => String(v || '').trim())) out[mapped] = arr.slice();
-    }
-    return out;
-  }
 
   const els = {
     months: document.getElementById('months'),
@@ -1162,7 +1135,7 @@ function normalizeCellValue(val){
     // Ensure optional fields
 
     const obj = (remoteObj && typeof remoteObj === 'object') ? remoteObj : {};
-    const emps = Array.isArray(obj.employees) && obj.employees.length ? sortEmployees(anonymizeEmployeeList(obj.employees)) : base.employees.slice();
+    const emps = Array.isArray(obj.employees) && obj.employees.length ? sortEmployees(obj.employees) : base.employees.slice();
 
     const out = {
       year: currentYear,
@@ -1196,7 +1169,7 @@ function normalizeCellValue(val){
 
     for(let m=1;m<=12;m++){
       out.months[m] = {};
-      const remoteMonth = anonymizeMonthRows((obj.months && obj.months[m]) ? obj.months[m] : {});
+      const remoteMonth = (obj.months && obj.months[m]) ? obj.months[m] : {};
       for (const emp of emps) {
         const arr = Array.isArray(remoteMonth[emp]) ? remoteMonth[emp].slice(0,31) : [];
         while (arr.length < 31) arr.push("");
@@ -1251,7 +1224,7 @@ function normalizeCellValue(val){
       els.fbAuthModal.style.display = 'flex';
       els.fbAuthModal.setAttribute('aria-hidden', 'false');
     }
-    if (els.fbEmail) setTimeout(()=>{ els.fbEmail.focus(); els.fbEmail.select && els.fbEmail.select(); }, 50);
+    if (els.fbEmail) setTimeout(()=>els.fbEmail.focus(), 50);
   }
   function hideAuthModal(){
     if (els.fbAuthModal) {
@@ -1293,7 +1266,7 @@ function normalizeCellValue(val){
           if (accountBtn) accountBtn.style.display = '';
           subscribeShared();
           subscribeRemote();
-          showToast('połączono', true);
+          showToast(`połączono (${currentUser.email || 'konto'})`, true);
         } else {
           remoteReady = false;
           detachRemote();
