@@ -454,8 +454,13 @@ tr.row-selected-employee .in:focus{
     .year-summary-table td .saldo, .year-summary-table td .status{justify-content:center}
 
 
-    .admin-danger-zone{margin:20px 0 0 0;padding:18px;border:2px solid #b91c1c;border-radius:16px;background:rgba(185,28,28,.10);box-shadow:0 12px 34px rgba(185,28,28,.16)}
-    .admin-danger-title{font-weight:800;font-size:15px;color:#ff8e8e;margin:0 0 8px 0;text-transform:uppercase;letter-spacing:.4px}
+    .admin-danger-zone{margin:20px 0 0 0;border:2px solid #b91c1c;border-radius:16px;background:rgba(185,28,28,.10);box-shadow:0 12px 34px rgba(185,28,28,.16);overflow:hidden}
+    .admin-danger-zone>summary{list-style:none;cursor:pointer;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:900;font-size:15px;color:#ff8e8e;text-transform:uppercase;letter-spacing:.5px;user-select:none}
+    .admin-danger-zone>summary::-webkit-details-marker{display:none}
+    .admin-danger-zone>summary::after{content:'Rozwiń';font-size:12px;font-weight:700;color:#ffb4b4;text-transform:none;letter-spacing:0}
+    .admin-danger-zone[open]>summary{border-bottom:1px solid rgba(255,120,120,.24)}
+    .admin-danger-zone[open]>summary::after{content:'Zwiń'}
+    .admin-danger-body{padding:16px 18px 18px 18px}
     .admin-danger-sub{color:#ffb4b4;font-size:12px;margin:0 0 14px 0;line-height:1.45}
     .admin-danger-check{display:flex;align-items:flex-start;gap:10px;margin:0 0 14px 0;color:#ffd3d3;font-size:13px;user-select:none}
     .admin-danger-check input{margin-top:2px;width:18px;height:18px;accent-color:#dc2626;cursor:pointer}
@@ -737,16 +742,18 @@ tr.row-selected-employee .in:focus{
           </div>
         </div></div></details>
 
-          <div class="admin-danger-zone">
-            <div class="admin-danger-title">Strefa niebezpieczna</div>
-            <div class="admin-danger-sub">Ta operacja wyczyści cały plik dla wszystkich użytkowników w tej bazie. Jest nieodwracalna.</div>
-            <label class="admin-danger-check">
-              <input id="adminResetConfirmChk" type="checkbox" />
-              <span>Rozumiem że usuwam wszystkie dane</span>
-            </label>
-            <button id="adminResetBtn" type="button" class="btn-danger-hard">Wyczyść cały plik</button>
-            <div class="admin-danger-note">Po kliknięciu trzeba dodatkowo wpisać dokładnie: <b>Tak, chcę wyczyścić cały plik</b></div>
-          </div>
+          <details id="adminDangerDetails" class="admin-danger-zone">
+            <summary>STREFA NIEBEZPIECZNA</summary>
+            <div class="admin-danger-body">
+              <div class="admin-danger-sub">Ta operacja wyczyści cały plik dla wszystkich użytkowników w tej bazie. Jest nieodwracalna.</div>
+              <label class="admin-danger-check">
+                <input id="adminResetConfirmChk" type="checkbox" />
+                <span>Rozumiem że usuwam wszystkie dane</span>
+              </label>
+              <button id="adminResetBtn" type="button" class="btn-danger-hard">Wyczyść cały plik</button>
+              <div class="admin-danger-note">Po kliknięciu trzeba dodatkowo wpisać dokładnie: <b>Tak, chcę wyczyścić cały plik</b></div>
+            </div>
+          </details>
       </div>
 
       <!-- Usunięto dolny pasek akcji: zamknięcie odbywa się przez ✕ w nagłówku -->
@@ -931,6 +938,7 @@ tr.row-selected-employee .in:focus{
     adminRemoveDataChk: document.getElementById('adminRemoveDataChk'),
     adminResetBtn: document.getElementById('adminResetBtn'),
     adminResetConfirmChk: document.getElementById('adminResetConfirmChk'),
+    adminDangerDetails: document.getElementById('adminDangerDetails'),
     fbAuthModal: document.getElementById('firebaseAuthModal'),
     fbEmail: document.getElementById('fbEmail'),
     fbPass: document.getElementById('fbPass'),
@@ -1781,6 +1789,7 @@ function normalizeCellValue(val){
     const on = isAdmin();
     if(els.adminLogoutBtn) els.adminLogoutBtn.style.display = on ? "" : "none";
     if(els.adminTools) els.adminTools.style.display = on ? "" : "none";
+    if(!on && els.adminDangerDetails) els.adminDangerDetails.open = false;
     if(els.adminSaveSettings){ els.adminSaveSettings.disabled = !on; }
     if(els.adminHolidaysToggle){
       els.adminHolidaysToggle.checked = !!(state.settings && state.settings.holidaysEnabled);
@@ -1815,6 +1824,8 @@ function normalizeCellValue(val){
     if(!els.adminModal) return;
     if(els.adminMsg){ els.adminMsg.style.display = "none"; els.adminMsg.className="modal-msg"; }
     if(els.adminPass) els.adminPass.value = "";
+    if(els.adminResetConfirmChk) els.adminResetConfirmChk.checked = false;
+    if(els.adminDangerDetails) els.adminDangerDetails.open = false;
     els.adminModal.style.display = "flex";
     els.adminModal.setAttribute("aria-hidden", "false");
     refreshAdminUI();
