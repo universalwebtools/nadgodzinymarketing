@@ -75,6 +75,7 @@
       min-height:52px;
     }
     #yearSel,#adminLockYearSel{min-width:120px}
+    #employeeSel{min-width:170px}
     select, button{
       font:inherit; color:var(--text);
       background:rgba(255,255,255,.06);
@@ -229,6 +230,23 @@
     }
     .in:focus{border-color:rgba(110,168,255,.70); box-shadow:0 0 0 3px rgba(110,168,255,.22)}
     .in[disabled]{opacity:.35}
+    tr.row-selected-employee td{background:rgba(255,225,120,.06)}
+    tr.row-selected-employee td.name,
+    tr.row-selected-employee td.daycell,
+    tr.row-selected-employee td.sum{
+      box-shadow: inset 0 0 0 1px rgba(255,225,120,.34);
+    }
+    tr.row-selected-employee td.name{
+      background:rgba(255,225,120,.12);
+      color:#fff3bf;
+    }
+    tr.row-selected-employee .in{
+      box-shadow:0 0 0 1px rgba(255,225,120,.45);
+    }
+    tr.row-selected-employee .in:focus{
+      border-color:rgba(255,225,120,.9);
+      box-shadow:0 0 0 3px rgba(255,225,120,.22);
+    }
     .in.code-u{background:var(--code-u-bg); border-color:var(--code-u-border); color:#d9ffe8; font-weight:800}
     .in.code-o{background:var(--code-o-bg); border-color:var(--code-o-border); color:#efe5ff; font-weight:800}
     .in.code-l4{background:var(--code-l4-bg); border-color:var(--code-l4-border); color:#ffe7dc; font-weight:800}
@@ -439,6 +457,12 @@
       <div class="pill">
         <span style="font-size:12px;color:var(--muted)">Rok:</span>
         <select id="yearSel"></select>
+      </div>
+      <div class="pill">
+        <span style="font-size:12px;color:var(--muted)">Pracownik:</span>
+        <select id="employeeSel">
+          <option value="">Wybierz pracownika</option>
+        </select>
       </div>
       <div class="pill">
         <span style="font-size:12px;color:var(--muted)">Widok:</span>
@@ -760,8 +784,10 @@
 
 (() => {
   const YEARS = Array.from({length:11}, (_,i)=>2025+i);
-  let currentYear = Number(localStorage.getItem('nadgodziny_current_year')) || 2026;
-  if(!YEARS.includes(currentYear)) currentYear = 2026;
+  const TODAY = new Date();
+  const TODAY_YEAR = TODAY.getFullYear();
+  const TODAY_MONTH = TODAY.getMonth() + 1;
+  let currentYear = YEARS.includes(TODAY_YEAR) ? TODAY_YEAR : YEARS[0];
   const monthNames = ["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
   const DB_BASE = `nadgodziny`;
   const YEAR_DB_PATH = (y)=> `${DB_BASE}/${y}/app`;
@@ -850,6 +876,7 @@
     tableWrap: document.getElementById('tableWrap'),
     viewSel: document.getElementById('viewSel'),
     yearSel: document.getElementById('yearSel'),
+    employeeSel: document.getElementById('employeeSel'),
     yearLabel: document.getElementById('yearLabel'),
     saveBtn: document.getElementById('saveBtn'),
     resetBtn: document.getElementById('resetBtn'),
@@ -1185,6 +1212,22 @@ function normalizeCellValue(val){
   function attrEscape(s){
     return String(s).replace(/\\/g,"\\\\").replace(/"/g, "\\\"");
   }
+  function canEditEmployee(emp){
+    return !!selectedEmployee && selectedEmployee === emp;
+  }
+  function validateSelectedEmployee(){
+    if(selectedEmployee && !employees.includes(selectedEmployee)){
+      selectedEmployee = '';
+      localStorage.removeItem('nadgodziny_selected_employee');
+    }
+  }
+  function populateEmployeeSelector(){
+    validateSelectedEmployee();
+    if(!els.employeeSel) return;
+    const options = ['<option value="">Wybierz pracownika</option>']
+      .concat(employees.map(emp=>`<option value="${attrEscape(emp)}" ${emp===selectedEmployee?'selected':''}>${emp}</option>`));
+    els.employeeSel.innerHTML = options.join('');
+  }
   function showToast(msg, ok=true){
     if (cloudBadge) {
       cloudBadge.textContent = `Chmura: ${msg}`;
@@ -1389,8 +1432,9 @@ function normalizeCellValue(val){
 
   let state = defaultState();
   let employees = state.employees.slice();
-  let currentMonth = 1;
+  let currentMonth = TODAY_MONTH;
   let currentView = "month";
+  let selectedEmployee = localStorage.getItem('nadgodziny_selected_employee') || '';
   let selectedAbsenceEmp = null;
   let adminLockYear = currentYear;
   let adminLockSettingsCache = {};
@@ -1514,6 +1558,7 @@ function normalizeCellValue(val){
   function applyRemoteData(raw, silent=false){
     state = normalizeState(raw); state.year = currentYear;
     employees = state.employees.slice();
+    populateEmployeeSelector();
     render();
     if (isAdmin()) renderAdminEmployees();
     updateSecurityStatusUI();
@@ -2286,6 +2331,7 @@ if(typed !== phrase){
     els.fbLoginBtn.addEventListener('click', async () => {
       if (!auth) {
         populateYearSelectors();
+  populateEmployeeSelector();
   loadAdminLockYearSettings(adminLockYear);
   initFirebase();
         return;
@@ -2512,6 +2558,7 @@ if(typed !== phrase){
         const tr=document.createElement('tr');
         tr.setAttribute("data-emp", emp);
         tr.setAttribute("data-month", String(m));
+        if(selectedEmployee && selectedEmployee === emp) tr.classList.add('row-selected-employee');
 
         const tdName=document.createElement('td'); tdName.className="name"; tdName.innerHTML=`<b>${emp}</b>`; tr.appendChild(tdName);
 
@@ -2540,11 +2587,15 @@ if(typed !== phrase){
             const hn = holidayName(currentYear,m,d);
             if (hn) input.title = hn;
           }
+          if(!canEditEmployee(emp) && d<=dim && !isMonthLocked(m)){
+            input.title = selectedEmployee ? 'Możesz wpisywać tylko w wybranym wierszu pracownika.' : 'Najpierw wybierz pracownika z listy u góry.';
+          }
           input.value = arr[d-1] ?? "";
-          input.disabled = (d>dim) || isMonthLocked(m);
+          input.disabled = (d>dim) || isMonthLocked(m) || !canEditEmployee(emp);
           paintDayInput(input);
 
           input.addEventListener('input', ()=>{
+            if(!canEditEmployee(emp)){ input.value = arr[d-1] ?? ""; return; }
             arr[d-1] = String(input.value || '').trim().toUpperCase();
             paintDayInput(input);
             const t = calcMonthTotalsForEmp(m, emp);
@@ -2558,6 +2609,7 @@ if(typed !== phrase){
           });
           // keydown handled globally (ENTER / Shift+ENTER)
           input.addEventListener('blur', ()=>{
+            if(!canEditEmployee(emp)){ input.value = arr[d-1] ?? ""; paintDayInput(input); return; }
             const v = normalizeCellValue(input.value);
             input.value = v;
             paintDayInput(input);
@@ -3000,6 +3052,7 @@ if(typed !== phrase){
         const tr=document.createElement('tr');
         tr.setAttribute("data-emp", emp);
         tr.setAttribute("data-month", String(m));
+        if(selectedEmployee && selectedEmployee === emp) tr.classList.add('row-selected-employee');
 
         const tdName=document.createElement('td'); tdName.className="name"; tdName.innerHTML=`<b>${emp}</b>`; tr.appendChild(tdName);
 
@@ -3028,11 +3081,15 @@ if(typed !== phrase){
             const hn = holidayName(currentYear,m,d);
             if (hn) input.title = hn;
           }
+          if(!canEditEmployee(emp) && d<=dim && !isMonthLocked(m)){
+            input.title = selectedEmployee ? 'Możesz wpisywać tylko w wybranym wierszu pracownika.' : 'Najpierw wybierz pracownika z listy u góry.';
+          }
           input.value = arr[d-1] ?? "";
-          input.disabled = (d>dim) || isMonthLocked(m);
+          input.disabled = (d>dim) || isMonthLocked(m) || !canEditEmployee(emp);
           paintDayInput(input);
 
           input.addEventListener('input', ()=>{
+            if(!canEditEmployee(emp)){ input.value = arr[d-1] ?? ""; return; }
             arr[d-1] = String(input.value || '').trim().toUpperCase();
             paintDayInput(input);
             const t = calcMonthTotalsForEmp(m, emp);
@@ -3046,6 +3103,7 @@ if(typed !== phrase){
           });
           // keydown handled globally (ENTER / Shift+ENTER)
           input.addEventListener('blur', ()=>{
+            if(!canEditEmployee(emp)){ input.value = arr[d-1] ?? ""; paintDayInput(input); return; }
             const v = normalizeCellValue(input.value);
             input.value = v;
             paintDayInput(input);
@@ -3273,6 +3331,8 @@ if(typed !== phrase){
 
   function render(){
     applyCodeColors();
+    populateYearSelectors();
+    populateEmployeeSelector();
     buildMonths();
     if(currentView==="month") renderMonth();
     else if(currentView==="summary_absences") renderAbsenceSummary();
@@ -3289,13 +3349,14 @@ if(typed !== phrase){
     if(!YEARS.includes(year) || year===currentYear) return;
     detachRemote();
     currentYear = year;
-    localStorage.setItem('nadgodziny_current_year', String(currentYear));
+    if(currentYear === TODAY_YEAR) currentMonth = TODAY_MONTH;
     els.yearLabel.textContent = currentYear;
     const sub = document.querySelector('.title .sub');
     if(sub) sub.innerHTML = `Wersja online (Firebase) • Rok <b>${currentYear}</b> • Wspólny zapis/odczyt dla całego działu`;
     dbRef = db ? db.ref(YEAR_DB_PATH(currentYear)) : null;
     state = defaultState();
     employees = state.employees.slice();
+    populateEmployeeSelector();
     adminLockYear = currentYear;
     populateYearSelectors();
     populateExportSelectors();
@@ -3304,6 +3365,12 @@ if(typed !== phrase){
     if(isAdmin()) renderAdminLockControls();
   }
   if(els.yearSel) els.yearSel.addEventListener('change', (e)=> switchYear(e.target.value));
+  if(els.employeeSel) els.employeeSel.addEventListener('change', (e)=>{
+    selectedEmployee = String(e.target.value || '');
+    if(selectedEmployee) localStorage.setItem('nadgodziny_selected_employee', selectedEmployee);
+    else localStorage.removeItem('nadgodziny_selected_employee');
+    render();
+  });
   if(els.adminLockYearSel) els.adminLockYearSel.addEventListener('change', (e)=> loadAdminLockYearSettings(e.target.value));
   if(els.adminYearLockChk) els.adminYearLockChk.addEventListener('change', async ()=>{
     if(!isAdmin()) return;
