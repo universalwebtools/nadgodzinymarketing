@@ -3572,53 +3572,13 @@ function normalizeCellValue(val){
         for(const emp of emps){
           const arr = (((snap.months||{})[m]||{})[emp]) || Array(31).fill('');
           for(let d=1; d<=dim; d++){
-            const raw = normalizeCellValue(arr[d-1]);
-if(!raw) continue;
-
-let code = '';
-let num = '';
-
-if(raw.includes(',')){
-  const parts = raw.split(',');
-  const p1 = parts[0].trim();
-  const p2 = parts[1].trim();
-
-  if(isTrackedCode(p1)){
-    code = p1;
-    num = parsePLNumber(p2);
-  }else{
-    num = parsePLNumber(p2);
-  }
-
-}else{
-
-  const parsed = parsePLNumber(raw);
-  if(Number.isFinite(parsed)){
-    num = parsed;
-  }else if(isTrackedCode(raw)){
-    code = raw;
-  }
-
-}
-
-const iso = formatDateISO(y,m,d);
-if(from && iso < from) continue;
-if(to && iso > to) continue;
-
-rows.push({
-  date: iso,
-  year: y,
-  month: m,
-  monthName: monthNames[m-1],
-  day: d,
-  weekday: weekdayName(y,m,d),
-  employee: emp,
-  value: raw,
-  kind: code ? 'kod' : 'liczba',
-  numericValue: Number.isFinite(num) ? num : '',
-  code: code,
-  codeLabel: code ? getCodeLabel(code) : ''
-});
+            const value = normalizeCellValue(arr[d-1]);
+            if(!value) continue;
+            const iso = formatDateISO(y,m,d);
+            if(from && iso < from) continue;
+            if(to && iso > to) continue;
+            const num = parsePLNumber(value);
+            const code = isTrackedCode(value) ? value : '';
             rows.push({
               date: iso,
               year: y,
