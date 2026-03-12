@@ -453,6 +453,17 @@ tr.row-selected-employee .in:focus{
     .year-summary-table th:nth-child(1), .year-summary-table td:nth-child(1){text-align:left}
     .year-summary-table td .saldo, .year-summary-table td .status{justify-content:center}
 
+
+    .admin-danger-zone{margin:20px 0 0 0;padding:18px;border:2px solid #b91c1c;border-radius:16px;background:rgba(185,28,28,.10);box-shadow:0 12px 34px rgba(185,28,28,.16)}
+    .admin-danger-title{font-weight:800;font-size:15px;color:#ff8e8e;margin:0 0 8px 0;text-transform:uppercase;letter-spacing:.4px}
+    .admin-danger-sub{color:#ffb4b4;font-size:12px;margin:0 0 14px 0;line-height:1.45}
+    .admin-danger-check{display:flex;align-items:flex-start;gap:10px;margin:0 0 14px 0;color:#ffd3d3;font-size:13px;user-select:none}
+    .admin-danger-check input{margin-top:2px;width:18px;height:18px;accent-color:#dc2626;cursor:pointer}
+    .btn-danger-hard{width:100%;padding:14px 16px;border:none;border-radius:14px;background:linear-gradient(180deg,#dc2626 0%,#b91c1c 100%);color:#fff;font-weight:800;font-size:16px;cursor:pointer;box-shadow:0 12px 28px rgba(185,28,28,.30)}
+    .btn-danger-hard:hover{filter:brightness(1.05)}
+    .btn-danger-hard:active{transform:translateY(1px)}
+    .admin-danger-note{margin-top:10px;color:#ffb4b4;font-size:12px;line-height:1.45}
+
 </style>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -494,7 +505,6 @@ tr.row-selected-employee .in:focus{
       <button class="btn-primary" id="saveBtn">Zapisz teraz</button>
       <button id="bulkBtn" type="button">Masowe wpisy</button>
       <button id="adminBtn" type="button">Panel admina</button>
-      <button class="btn-danger" id="resetBtn" style="display:none">Reset (ten komputer)</button>
       <button id="adminLogoutBtn" type="button" style="display:none">Wyloguj admina</button>
     </div>
   </header>
@@ -723,10 +733,20 @@ tr.row-selected-employee .in:focus{
               <div class="admin-note">
                 <b>Edycja</b> przenosi dane starej osoby na nową nazwę (migracja całego roku).
               </div>
-              <button id="adminResetBtn" type="button" class="btn-danger">Reset (ten komputer)</button>
             </div>
           </div>
         </div></div></details>
+
+          <div class="admin-danger-zone">
+            <div class="admin-danger-title">Strefa niebezpieczna</div>
+            <div class="admin-danger-sub">Ta operacja wyczyści cały plik dla wszystkich użytkowników w tej bazie. Jest nieodwracalna.</div>
+            <label class="admin-danger-check">
+              <input id="adminResetConfirmChk" type="checkbox" />
+              <span>Rozumiem że usuwam wszystkie dane</span>
+            </label>
+            <button id="adminResetBtn" type="button" class="btn-danger-hard">Wyczyść cały plik</button>
+            <div class="admin-danger-note">Po kliknięciu trzeba dodatkowo wpisać dokładnie: <b>Tak, chcę wyczyścić cały plik</b></div>
+          </div>
       </div>
 
       <!-- Usunięto dolny pasek akcji: zamknięcie odbywa się przez ✕ w nagłówku -->
@@ -896,7 +916,6 @@ tr.row-selected-employee .in:focus{
     employeeSel: document.getElementById('employeeSel'),
     yearLabel: document.getElementById('yearLabel'),
     saveBtn: document.getElementById('saveBtn'),
-    resetBtn: document.getElementById('resetBtn'),
     adminBtn: document.getElementById('adminBtn'),
     adminLogoutBtn: document.getElementById('adminLogoutBtn'),
     adminModal: document.getElementById('adminModal'),
@@ -911,6 +930,7 @@ tr.row-selected-employee .in:focus{
     adminEmpAddBtn: document.getElementById('adminEmpAddBtn'),
     adminRemoveDataChk: document.getElementById('adminRemoveDataChk'),
     adminResetBtn: document.getElementById('adminResetBtn'),
+    adminResetConfirmChk: document.getElementById('adminResetConfirmChk'),
     fbAuthModal: document.getElementById('firebaseAuthModal'),
     fbEmail: document.getElementById('fbEmail'),
     fbPass: document.getElementById('fbPass'),
@@ -998,7 +1018,6 @@ tr.row-selected-employee .in:focus{
   if (adminSubEl) adminSubEl.textContent = "Funkcje administracyjne (wspólna baza online)";
   const adminToolsSub = document.querySelector('#adminTools .modal-sub');
   if (adminToolsSub) adminToolsSub.textContent = "Zarządzanie pracownikami (lista wspólna dla wszystkich)";
-  if (els.adminResetBtn) els.adminResetBtn.textContent = "Reset (wszyscy użytkownicy)";
 
   // Add cloud status + logout button in toolbar
   const toolbar = document.querySelector('.toolbar');
@@ -1760,7 +1779,6 @@ function normalizeCellValue(val){
   }
   function refreshAdminUI(){
     const on = isAdmin();
-    if(els.resetBtn) els.resetBtn.style.display = on ? "" : "none";
     if(els.adminLogoutBtn) els.adminLogoutBtn.style.display = on ? "" : "none";
     if(els.adminTools) els.adminTools.style.display = on ? "" : "none";
     if(els.adminSaveSettings){ els.adminSaveSettings.disabled = !on; }
@@ -1913,22 +1931,25 @@ function normalizeCellValue(val){
   if(els.adminResetBtn){
     els.adminResetBtn.addEventListener('click', async ()=>{
       if(!isAdmin()) return;
-      const phrase = "potwierdzamreset";
-const typed = prompt(`Aby potwierdzić reset, wpisz dokładnie: ${phrase}`);
-if(typed !== phrase){
-  alert("Reset anulowany.");
-  return;
-}
-{
-        state = defaultState();
-        employees = state.employees.slice();
-        render();
-        try {
-          await saveRemote(false);
-          showAdminMsg("Wyczyszczono dane w chmurze ✅", true);
-        } catch(e) {
-          showAdminMsg("Błąd resetu w chmurze.", false);
-        }
+      if(!(els.adminResetConfirmChk && els.adminResetConfirmChk.checked)){
+        showAdminMsg("Zaznacz najpierw: Rozumiem że usuwam wszystkie dane.", false);
+        return;
+      }
+      const phrase = "Tak, chcę wyczyścić cały plik";
+      const typed = prompt(`Aby potwierdzić, wpisz dokładnie: ${phrase}`);
+      if(typed !== phrase){
+        alert("Czyszczenie anulowane.");
+        return;
+      }
+      state = defaultState();
+      employees = state.employees.slice();
+      render();
+      if(els.adminResetConfirmChk) els.adminResetConfirmChk.checked = false;
+      try {
+        await saveRemote(false);
+        showAdminMsg("Wyczyszczono cały plik ✅", true);
+      } catch(e) {
+        showAdminMsg("Błąd podczas czyszczenia pliku.", false);
       }
     });
   }
@@ -3428,28 +3449,6 @@ if(typed !== phrase){
 
   els.saveBtn.addEventListener('click', ()=>{ saveRemote(true).catch(()=>{}); });
 
-  els.resetBtn.addEventListener('click', async ()=>{
-    if(!isAdmin()){
-      openAdminModal();
-      showAdminMsg("Najpierw zaloguj się jako admin.", false);
-      return;
-    }
-    const phrase = "potwierdzamreset";
-const typed = prompt(`Aby potwierdzić reset, wpisz dokładnie: ${phrase}`);
-if(typed !== phrase){
-  alert("Reset anulowany.");
-  return;
-}
-{
-      state = defaultState();
-      employees = state.employees.slice();
-      render();
-      try {
-        await saveRemote(false);
-        alert("Wyczyszczono dane w chmurze ✅");
-      } catch(e) {}
-    }
-  });
 
   populateYearSelectors();
 
