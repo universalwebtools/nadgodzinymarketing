@@ -992,17 +992,54 @@
   function weekdayName(y,m,d){
     return weekdayPL(y,m,d);
   }
+  function splitCellValueParts(val){
+    if(val==null) return { raw:'', normalized:'', code:'', numericRaw:'', number:null };
+    const raw = String(val).trim().toUpperCase();
+    if(!raw || raw==='-' || raw==='+') return { raw:'', normalized:'', code:'', numericRaw:'', number:null };
+
+    const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+    if(parts.length >= 2){
+      const codeCandidate = parts[0];
+      const numericCandidate = parts.slice(1).join(',').replace(/,/g,'.');
+      const n = Number(numericCandidate);
+      if(isTrackedCode(codeCandidate) && Number.isFinite(n)){
+        return {
+          raw,
+          normalized: `${codeCandidate},${String(Math.round(n*10)/10).replace(/\.0$/,'')}`,
+          code: codeCandidate,
+          numericRaw: String(Math.round(n*10)/10).replace(/\.0$/,''),
+          number: n
+        };
+      }
+    }
+
+    const normalizedSimple = raw.replace(',', '.');
+    if(isTrackedCode(normalizedSimple)){
+      return { raw, normalized: normalizedSimple, code: normalizedSimple, numericRaw:'', number:null };
+    }
+
+    const n = Number(normalizedSimple);
+    if(Number.isFinite(n)){
+      return {
+        raw,
+        normalized: String(Math.round(n*10)/10).replace(/\.0$/,''),
+        code:'',
+        numericRaw: String(Math.round(n*10)/10).replace(/\.0$/,''),
+        number:n
+      };
+    }
+
+    return { raw, normalized:'', code:'', numericRaw:'', number:null };
+  }
+
   function parseNum(val){
-    if(val==null) return 0;
-    let s = String(val).trim();
-    if(!s) return 0;
-    s = s.replace(',', '.');
-    const n = Number(s);
-    return Number.isFinite(n) ? n : 0;
+    const parts = splitCellValueParts(val);
+    return Number.isFinite(parts.number) ? parts.number : 0;
   }
 
   function parsePLNumber(val){
-    return parseNum(val);
+    const parts = splitCellValueParts(val);
+    return Number.isFinite(parts.number) ? parts.number : NaN;
   }
   const CODE_META = {
     U: { label: 'Urlop', cls: 'good' },
@@ -1113,22 +1150,20 @@
     return getHolidayMap(y)[fmtDateKey(y,m,d)] || "";
   }
 function normalizeCellValue(val){
-    if(val==null) return '';
-    let v = String(val).trim().replace(',', '.').toUpperCase();
-    if(!v || v==='-' || v==='+') return '';
-    if(isTrackedCode(v)) return v;
-    if(/^[+-]?\d+(\.\d+)?$/.test(v)) return v;
-    return '';
+    return splitCellValueParts(val).normalized;
+  }
+  function extractCodeFromCellValue(val){
+    return splitCellValueParts(val).code || '';
   }
   function codeClassForValue(val){
-    const v = normalizeCellValue(val);
-    if(!v) return '';
-    if(v==='U') return 'code-u';
-    if(v==='O') return 'code-o';
-    if(v==='L4') return 'code-l4';
-    if(v==='UT') return 'code-ut';
-    if(v==='T') return 'code-t';
-    if(v==='Z') return 'code-z';
+    const code = extractCodeFromCellValue(val);
+    if(!code) return '';
+    if(code==='U') return 'code-u';
+    if(code==='O') return 'code-o';
+    if(code==='L4') return 'code-l4';
+    if(code==='UT') return 'code-ut';
+    if(code==='T') return 'code-t';
+    if(code==='Z') return 'code-z';
     return '';
   }
   function paintDayInput(input){
@@ -1137,16 +1172,11 @@ function normalizeCellValue(val){
     const cls = codeClassForValue(input.value);
     if(cls){
       input.classList.add(cls);
-      return;
     }
-    // Numeric coloring (+ / -)
-    const v = normalizeCellValue(input.value);
-    if(/^[+-]?\d+(\.\d+)?$/.test(v)){
-      const n = Number(v);
-      if(Number.isFinite(n)){
-        if(n > 0) input.classList.add('num-pos');
-        else if(n < 0) input.classList.add('num-neg');
-      }
+    const n = parsePLNumber(input.value);
+    if(Number.isFinite(n)){
+      if(n > 0) input.classList.add('num-pos');
+      else if(n < 0) input.classList.add('num-neg');
     }
   }
   function fmt(n){ return (Math.round(n*10)/10).toFixed(1); }
@@ -2488,10 +2518,11 @@ function normalizeCellValue(val){
         const arr = (state.months[m] && state.months[m][emp]) ? state.months[m][emp] : Array(31).fill("");
         for(let d=1; d<=dim; d++){
           const raw = normalizeCellValue(arr[d-1]);
-          if(!isTrackedCode(raw)) continue;
+          const code = extractCodeFromCellValue(raw);
+          if(!isTrackedCode(code)) continue;
           out.push({
             emp,
-            code: raw,
+            code,
             month: m,
             day: d,
             label: `${String(d).padStart(2,'0')}.${String(m).padStart(2,'0')}.${currentYear}`,
@@ -2515,8 +2546,9 @@ function normalizeCellValue(val){
       const arr = (state.months[m] && state.months[m][emp]) ? state.months[m][emp] : Array(31).fill("");
       for(let d=1; d<=dim; d++){
         const v = normalizeCellValue(arr[d-1]);
-        if(isTrackedCode(v)){
-          counts[v] = (counts[v] || 0) + 1;
+        const code = extractCodeFromCellValue(v);
+        if(isTrackedCode(code)){
+          counts[code] = (counts[code] || 0) + 1;
           counts.total++;
         }
       }
@@ -2651,7 +2683,7 @@ function normalizeCellValue(val){
           input.autocapitalize="characters";
           input.autocomplete="off";
           input.spellcheck=false;
-          input.maxLength = 6;
+          input.maxLength = 10;
           input.dataset.emp = emp;
           input.dataset.month = String(m);
           input.dataset.day = String(d);
@@ -2664,7 +2696,7 @@ function normalizeCellValue(val){
           paintDayInput(input);
 
           input.addEventListener('input', ()=>{
-            arr[d-1] = input.value.replace(',', '.');
+            arr[d-1] = input.value;
             paintDayInput(input);
             const t = calcMonthTotalsForEmp(m, emp);
             document.querySelectorAll(`tr[data-emp="${cssEscape(emp)}"][data-month="${m}"]`).forEach(row=>{
@@ -3139,7 +3171,7 @@ function normalizeCellValue(val){
           input.autocapitalize="characters";
           input.autocomplete="off";
           input.spellcheck=false;
-          input.maxLength = 6;
+          input.maxLength = 10;
           input.dataset.emp = emp;
           input.dataset.month = String(m);
           input.dataset.day = String(d);
@@ -3152,7 +3184,7 @@ function normalizeCellValue(val){
           paintDayInput(input);
 
           input.addEventListener('input', ()=>{
-            arr[d-1] = input.value.replace(',', '.');
+            arr[d-1] = input.value;
             paintDayInput(input);
             const t = calcMonthTotalsForEmp(m, emp);
             document.querySelectorAll(`tr[data-emp="${cssEscape(emp)}"][data-month="${m}"]`).forEach(row=>{
@@ -3577,8 +3609,9 @@ function normalizeCellValue(val){
             const iso = formatDateISO(y,m,d);
             if(from && iso < from) continue;
             if(to && iso > to) continue;
-            const num = parsePLNumber(value);
-            const code = isTrackedCode(value) ? value : '';
+            const parsed = splitCellValueParts(value);
+            const num = Number.isFinite(parsed.number) ? parsed.number : NaN;
+            const code = parsed.code || '';
             rows.push({
               date: iso,
               year: y,
@@ -3588,7 +3621,7 @@ function normalizeCellValue(val){
               weekday: weekdayName(y,m,d),
               employee: emp,
               value,
-              kind: code ? 'kod' : 'liczba',
+              kind: code && Number.isFinite(num) ? 'kod + liczba' : (code ? 'kod' : 'liczba'),
               numericValue: Number.isFinite(num) ? num : '',
               code,
               codeLabel: code ? getCodeLabel(code) : ''
