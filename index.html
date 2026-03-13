@@ -454,20 +454,32 @@ tr.row-selected-employee .in:focus{
     .year-summary-table td .saldo, .year-summary-table td .status{justify-content:center}
 
     .tablewrap.single-table-mode{overflow-x:auto; padding-bottom:10px}
-    .month-single-table{min-width:1160px}
-    .month-single-table thead th{padding:6px 2px; font-size:10px}
-    .month-single-table td.name{width:130px; min-width:130px; max-width:130px; white-space:nowrap}
-    .month-single-table .daycell{width:28px; min-width:28px; max-width:28px; padding:3px 2px}
-    .month-single-table .in{height:24px; padding:3px 2px; font-size:10px; border-radius:8px}
-    .month-single-table th.tail-col, .month-single-table td.tail-col{width:72px; min-width:72px; max-width:72px}
-    .month-single-table .saldo, .month-single-table .status{min-width:56px; padding:5px 6px; font-size:11px}
+    .month-single-table{min-width:1420px}
+    .month-single-table thead th{padding:7px 3px; font-size:11px}
+    .month-single-table td.name{
+      width:180px; min-width:180px; max-width:180px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      padding-right:14px;
+    }
+    .month-single-table tbody td.name b{
+      display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .month-single-table .daycell{width:32px; min-width:32px; max-width:32px; padding:4px 2px}
+    .month-single-table .in{height:27px; padding:4px 2px; font-size:11px; border-radius:9px}
+    .month-single-table th.tail-col, .month-single-table td.tail-col{width:82px; min-width:82px; max-width:82px}
+    .month-single-table .saldo, .month-single-table .status{min-width:64px; padding:6px 8px; font-size:12px}
     .month-single-table thead th:first-child,
     .month-single-table tbody td.name{
-      position:sticky; left:0; z-index:2;
+      position:sticky; left:0; z-index:4;
       background:linear-gradient(180deg,#12203b,#0d1830);
     }
-    .month-single-table thead th:first-child{z-index:3; background:linear-gradient(180deg,#152746,#101f39)}
-    .month-single-table tbody td.name{box-shadow:8px 0 18px rgba(0,0,0,.18)}
+    .month-single-table thead th:first-child{
+      z-index:5;
+      background:linear-gradient(180deg,#152746,#101f39);
+    }
+    .month-single-table tbody td.name{
+      box-shadow:12px 0 22px rgba(0,0,0,.20), inset -1px 0 0 rgba(255,255,255,.08);
+    }
 
 </style>
 
