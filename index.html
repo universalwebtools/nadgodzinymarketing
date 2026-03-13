@@ -267,6 +267,7 @@ tr.row-selected-employee .in:focus{
   box-shadow:0 0 0 3px rgba(212,175,55,.25);
 }
     .in.code-u{background:var(--code-u-bg); border-color:var(--code-u-border); color:#d9ffe8; font-weight:800}
+    .in.code-up{background:var(--code-up-bg); border-color:var(--code-up-border); color:#e8f2ff; font-weight:800}
     .in.code-o{background:var(--code-o-bg); border-color:var(--code-o-border); color:#efe5ff; font-weight:800}
     .in.code-l4{background:var(--code-l4-bg); border-color:var(--code-l4-border); color:#ffe7dc; font-weight:800}
     .in.code-ut{background:var(--code-ut-bg); border-color:var(--code-ut-border); color:#ddffea; font-weight:800}
@@ -459,12 +460,18 @@ tr.row-selected-employee .in:focus{
     .month-single-table{min-width:1420px}
     .month-single-table thead th{padding:7px 3px; font-size:11px}
     .month-single-table td.name{
-      width:180px; min-width:180px; max-width:180px;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-      padding-right:14px;
+      width:240px; min-width:240px; max-width:240px;
+      white-space:normal; overflow:visible; text-overflow:clip;
+      padding-right:16px;
+      line-height:1.15;
     }
     .month-single-table tbody td.name b{
-      display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      display:block;
+      white-space:normal;
+      overflow:visible;
+      text-overflow:clip;
+      word-break:break-word;
+      overflow-wrap:anywhere;
     }
     .month-single-table .daycell{width:32px; min-width:32px; max-width:32px; padding:4px 2px}
     .month-single-table .in{height:27px; padding:4px 2px; font-size:11px; border-radius:9px}
