@@ -451,10 +451,11 @@ tr.row-selected-employee .in:focus{
 
 
     /* Year summary alignment */
-    .year-summary-table{table-layout:fixed}
-    .year-summary-table th, .year-summary-table td{text-align:center}
+    .year-summary-table{table-layout:fixed; width:100%}
+    .year-summary-table th, .year-summary-table td{text-align:center; padding-left:8px; padding-right:8px}
     .year-summary-table th:nth-child(1), .year-summary-table td:nth-child(1){text-align:left}
     .year-summary-table td .saldo, .year-summary-table td .status{justify-content:center}
+    .year-summary-table td.name{white-space:nowrap}
 
     .tablewrap.single-table-mode{overflow-x:auto; padding-bottom:10px}
     .month-single-table{min-width:1560px}
@@ -3261,15 +3262,25 @@ function normalizeCellValue(val){
 
     const table=document.createElement('table');
     table.className='year-summary-table';
+    table.style.width = '100%';
     const cg=document.createElement('colgroup');
     const nameCol=document.createElement('col');
     nameCol.style.width='170px';
     cg.appendChild(nameCol);
-    const yearColWidth = Math.max(72, Math.floor((window.innerWidth - 420) / summaryYears.length));
-    summaryYears.forEach(()=>{ const c=document.createElement('col'); c.style.width = `${yearColWidth}px`; cg.appendChild(c); });
-    const totalCol=document.createElement('col'); totalCol.style.width='120px'; cg.appendChild(totalCol);
+    const compactYearWidth = 92;
+    const useScrollableWideLayout = summaryYears.length > 4;
+    summaryYears.forEach(()=>{
+      const c=document.createElement('col');
+      if(useScrollableWideLayout) c.style.width = `${compactYearWidth}px`;
+      cg.appendChild(c);
+    });
+    const totalCol=document.createElement('col'); totalCol.style.width='118px'; cg.appendChild(totalCol);
     const statusCol=document.createElement('col'); statusCol.style.width='110px'; cg.appendChild(statusCol);
     table.appendChild(cg);
+    if(useScrollableWideLayout){
+      const minW = 170 + (summaryYears.length * compactYearWidth) + 118 + 110;
+      table.style.minWidth = `${minW}px`;
+    }
     const thead=document.createElement('thead');
     const tr1=document.createElement('tr');
     ['Imię i nazwisko', ...summaryYears.map(String), 'Saldo (całość)', 'Status'].forEach((t,idx)=>{
