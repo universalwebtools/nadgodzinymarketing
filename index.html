@@ -419,7 +419,7 @@ tr.row-selected-employee .in:focus{
     .admin-check{font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center}
     .admin-note{font-size:12px; color:var(--muted); padding:10px 12px; border:1px solid rgba(255,255,255,.10); border-radius:12px; background:rgba(255,255,255,.03)}
 
-
+  
     /* Dropdown options visibility (Chrome/Edge on Windows sometimes renders white bg with white text) */
     select option, select optgroup{
       background: #0f1b2b;
@@ -717,7 +717,7 @@ tr.row-selected-employee .in:focus{
             <span id="adminSettingsSaved" style="color:var(--muted); font-size:12px"></span>
           </div>
 
-
+          
           <details id="adminSecurity" class="admin-accordion" style="margin:0 0 16px 0; border:1px solid rgba(255,255,255,.12); border-radius:14px; background:rgba(255,255,255,.04); overflow:hidden">
             <summary style="list-style:none; cursor:pointer; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px">
               <span style="font-weight:700">Zabezpieczenia</span>
@@ -804,7 +804,7 @@ tr.row-selected-employee .in:focus{
                 <button id="exportJsonBackupBtn" type="button" class="btn">Pobierz JSON backup</button>
                 <span id="exportStatus" style="color:var(--muted); font-size:12px"></span>
               </div>
-
+            
 
               <div class="modal-sub" style="margin:16px 0 8px 0">Backupy / archiwum</div>
               <div class="admin-note" style="margin:0 0 12px 0">Możesz utworzyć backup, zaimportować plik JSON, podejrzeć starszą wersję danych, przywrócić ją do chmury albo usunąć z lokalnego archiwum tej przeglądarki.</div>
@@ -842,7 +842,7 @@ tr.row-selected-employee .in:focus{
               <div class="admin-note" style="margin-top:10px">Czyszczenie całego pliku przeniesiono na sam dół panelu admina do zakładki <b>STREFA NIEBEZPIECZNA</b>.</div>
             </div>
           </div>
-
+        
           <details id="adminDangerDetails" class="admin-accordion" style="margin:16px 0 0 0; border:1px solid rgba(255,70,70,.28); border-radius:14px; background:rgba(120,0,0,.12); overflow:hidden">
             <summary style="list-style:none; cursor:pointer; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px">
               <span style="font-weight:800; color:#ff8f8f; letter-spacing:.3px">STREFA NIEBEZPIECZNA</span>
@@ -1294,7 +1294,7 @@ tr.row-selected-employee .in:focus{
   function isTrackedCode(v){
     return getTrackedCodes().includes(v);
   }
-
+  
   // ===== Święta / dni wolne (PL) =====
   function easterDateGregorian(year){
     // Anonymous Gregorian algorithm
@@ -1428,7 +1428,6 @@ function normalizeCellValue(val){
   }
   function getVisibleEmployeesForTable(){
     sanitizeVisibleEmployees();
-    const list = visibleEmployees.length ? visibleEmployees.slice() : employees.slice();
     const list = (visibleEmployeesMode === 'all') ? employees.slice() : visibleEmployees.slice();
     if(selectedEmployee && employees.includes(selectedEmployee) && !list.includes(selectedEmployee)) list.push(selectedEmployee);
     return list;
@@ -1437,7 +1436,6 @@ function normalizeCellValue(val){
     if(!els.visibleEmployeesLabel) return;
     sanitizeVisibleEmployees();
     const count = visibleEmployees.length;
-    if(!count || count >= employees.length) els.visibleEmployeesLabel.textContent = 'Wszyscy';
     if(visibleEmployeesMode === 'all' || count >= employees.length) els.visibleEmployeesLabel.textContent = 'Wszyscy';
     else if(count === 0) els.visibleEmployeesLabel.textContent = 'Brak';
     else if(count === 1) els.visibleEmployeesLabel.textContent = visibleEmployees[0];
@@ -1447,13 +1445,11 @@ function normalizeCellValue(val){
     if(!els.visibleEmployeesList) return;
     sanitizeVisibleEmployees();
     els.visibleEmployeesList.innerHTML = employees.map(emp=>{
-      const checked = !visibleEmployees.length || visibleEmployees.includes(emp);
       const checked = (visibleEmployeesMode === 'all') || visibleEmployees.includes(emp);
       return `<label class="empfilter-item"><input type="checkbox" data-visible-emp="${attrEscape(emp)}" ${checked?'checked':''}><span>${escapeHtml(emp)}</span></label>`;
     }).join('');
     updateVisibleEmployeesLabel();
   }
-  function setVisibleEmployees(next){
   function setVisibleEmployees(next, modeOverride){
     visibleEmployees = Array.isArray(next) ? next.filter(emp=>employees.includes(emp)) : [];
     visibleEmployeesMode = modeOverride || (visibleEmployees.length >= employees.length ? 'all' : 'custom');
@@ -1681,7 +1677,6 @@ function normalizeCellValue(val){
   let selectedEmployee = localStorage.getItem('nadgodziny_selected_employee') || '';
   let visibleEmployeesMode = 'all';
   let visibleEmployees = [];
-  try{ const raw = JSON.parse(localStorage.getItem('nadgodziny_visible_employees') || '[]'); visibleEmployees = Array.isArray(raw) ? raw.map(String) : []; }catch(_e){ visibleEmployees = []; }
   try{
     const rawMode = String(localStorage.getItem('nadgodziny_visible_employees_mode') || '').trim();
     if(rawMode === 'all' || rawMode === 'custom') visibleEmployeesMode = rawMode;
@@ -2034,7 +2029,7 @@ function normalizeCellValue(val){
     setPicker(els.adminColorZ, cc.Z);
     if(els.adminResetColors) els.adminResetColors.disabled = !on;
     renderAdminLockControls();
-
+  
     updateSecurityStatusUI();
 }
   function showAdminMsg(text, ok){
@@ -3983,12 +3978,9 @@ function normalizeCellValue(val){
       const t = e.target;
       if(!(t && t.matches && t.matches('input[data-visible-emp]'))) return;
       const emp = String(t.getAttribute('data-visible-emp') || '');
-      const current = new Set(visibleEmployees.length ? visibleEmployees : employees);
       const current = new Set((visibleEmployeesMode === 'all') ? employees : visibleEmployees);
       if(t.checked) current.add(emp); else current.delete(emp);
       const next = employees.filter(name=>current.has(name));
-      if(next.length === employees.length || next.length === 0) visibleEmployees = [];
-      else visibleEmployees = next;
       visibleEmployees = next;
       visibleEmployeesMode = (next.length === employees.length) ? 'all' : 'custom';
       sanitizeVisibleEmployees();
@@ -3997,8 +3989,6 @@ function normalizeCellValue(val){
       render();
     });
   }
-  if(els.visibleEmployeesAllBtn) els.visibleEmployeesAllBtn.addEventListener('click', ()=> setVisibleEmployees(employees.slice()));
-  if(els.visibleEmployeesClearBtn) els.visibleEmployeesClearBtn.addEventListener('click', ()=> setVisibleEmployees([]));
   if(els.visibleEmployeesAllBtn) els.visibleEmployeesAllBtn.addEventListener('click', ()=> setVisibleEmployees(employees.slice(), 'all'));
   if(els.visibleEmployeesClearBtn) els.visibleEmployeesClearBtn.addEventListener('click', ()=> setVisibleEmployees([], 'custom'));
   if(els.visibleEmployeesCloseBtn) els.visibleEmployeesCloseBtn.addEventListener('click', (e)=>{ e.preventDefault(); if(els.visibleEmployeesBox) els.visibleEmployeesBox.open = false; });
