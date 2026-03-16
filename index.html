@@ -26,8 +26,6 @@
       --code-l4-border: rgba(214,89,49,.52);
       --code-ut-bg: rgba(31,143,78,.16);
       --code-ut-border: rgba(31,143,78,.45);
-      --code-up-bg: rgba(74,144,226,.16);
-      --code-up-border: rgba(74,144,226,.48);
       --code-t-bg: rgba(255,179,71,.18);
       --code-t-border: rgba(255,179,71,.50);
       --code-z-bg: rgba(70,130,180,.18);
@@ -267,7 +265,6 @@ tr.row-selected-employee .in:focus{
   box-shadow:0 0 0 3px rgba(212,175,55,.25);
 }
     .in.code-u{background:var(--code-u-bg); border-color:var(--code-u-border); color:#d9ffe8; font-weight:800}
-    .in.code-up{background:var(--code-up-bg); border-color:var(--code-up-border); color:#e8f2ff; font-weight:800}
     .in.code-o{background:var(--code-o-bg); border-color:var(--code-o-border); color:#efe5ff; font-weight:800}
     .in.code-l4{background:var(--code-l4-bg); border-color:var(--code-l4-border); color:#ffe7dc; font-weight:800}
     .in.code-ut{background:var(--code-ut-bg); border-color:var(--code-ut-border); color:#ddffea; font-weight:800}
@@ -435,97 +432,26 @@ tr.row-selected-employee .in:focus{
       color:#cfe6ff;
       opacity:.9;
     }
-    .daycell.is-holiday .in,
-    .daycell.is-weekend .in{
+    .daycell.is-holiday .in:not(.code-u):not(.code-up):not(.code-o):not(.code-l4):not(.code-ut):not(.code-t):not(.code-z):not(.num-pos):not(.num-neg),
+    .daycell.is-weekend .in:not(.code-u):not(.code-up):not(.code-o):not(.code-l4):not(.code-ut):not(.code-t):not(.code-z):not(.num-pos):not(.num-neg){
       border-color: rgba(255,255,255,.18);
     }
-    .daycell.is-weekend .in:not(.code-u):not(.code-up):not(.code-o):not(.code-l4):not(.code-ut):not(.code-t):not(.code-z){
+    .daycell.is-weekend .in:not(.code-u):not(.code-up):not(.code-o):not(.code-l4):not(.code-ut):not(.code-t):not(.code-z):not(.num-pos):not(.num-neg){
       background: rgba(110,168,255,.10);
       border-color: rgba(110,168,255,.28);
       box-shadow: inset 0 0 0 1px rgba(110,168,255,.16);
     }
-    .daycell.is-holiday .in:not(.code-u):not(.code-up):not(.code-o):not(.code-l4):not(.code-ut):not(.code-t):not(.code-z){
+    .daycell.is-holiday .in:not(.code-u):not(.code-up):not(.code-o):not(.code-l4):not(.code-ut):not(.code-t):not(.code-z):not(.num-pos):not(.num-neg){
       background: rgba(255,210,120,.10);
       box-shadow: inset 0 0 0 1px rgba(255,210,120,.22), 0 0 0 2px rgba(255,210,120,.06);
     }
 
 
     /* Year summary alignment */
-    .year-summary-table{table-layout:fixed; width:auto; min-width:unset; margin:0 auto}
+    .year-summary-table{table-layout:fixed}
     .year-summary-table th, .year-summary-table td{text-align:center}
     .year-summary-table th:nth-child(1), .year-summary-table td:nth-child(1){text-align:left}
     .year-summary-table td .saldo, .year-summary-table td .status{justify-content:center}
-    .year-summary-wrap{overflow-x:auto; padding-bottom:6px}
-    .summary-toggle-btn{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:6px 10px; border-radius:10px; border:1px solid var(--line);
-      background:rgba(255,255,255,.05); color:var(--text); font-size:12px; font-weight:700; cursor:pointer;
-    }
-    .summary-toggle-btn:hover{background:rgba(255,255,255,.08)}
-
-    .tablewrap.single-table-mode{overflow-x:auto; padding-bottom:10px}
-    .month-single-table{min-width:1560px}
-    .month-single-table thead th{padding:7px 3px; font-size:11px}
-    .month-single-table td.name{
-      width:320px; min-width:320px; max-width:320px;
-      white-space:nowrap;
-      overflow:visible;
-      text-overflow:clip;
-      padding-right:18px;
-      line-height:1.15;
-    }
-    .month-single-table tbody td.name b{
-      display:block;
-      white-space:nowrap;
-      overflow:visible;
-      text-overflow:clip;
-      word-break:normal;
-      overflow-wrap:normal;
-    }
-    .month-single-table .daycell{width:32px; min-width:32px; max-width:32px; padding:4px 2px}
-    .month-single-table .in{height:27px; padding:4px 2px; font-size:11px; border-radius:9px}
-    .month-single-table th.tail-col, .month-single-table td.tail-col{width:82px; min-width:82px; max-width:82px}
-    .month-single-table .saldo, .month-single-table .status{min-width:64px; padding:6px 8px; font-size:12px}
-    .month-single-table thead th:first-child,
-    .month-single-table tbody td.name{
-      position:sticky; left:0; z-index:4;
-      background:linear-gradient(180deg,#12203b,#0d1830);
-    }
-    .month-single-table thead th:first-child{
-      z-index:5;
-      background:linear-gradient(180deg,#152746,#101f39);
-    }
-    .month-single-table tbody td.name{
-      box-shadow:12px 0 22px rgba(0,0,0,.20), inset -1px 0 0 rgba(255,255,255,.08);
-    }
-
-    .empfilter{position:relative}
-    .empfilter > summary{list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted)}
-    .empfilter > summary::-webkit-details-marker{display:none}
-    .empfilter-panel{position:absolute; top:calc(100% + 8px); left:0; min-width:280px; max-width:340px; background:linear-gradient(180deg,#152746,#101f39); border:1px solid rgba(255,255,255,.12); border-radius:14px; box-shadow:0 20px 50px rgba(0,0,0,.35); padding:12px; z-index:130}
-    .empfilter-actions{display:flex; gap:8px; margin-bottom:10px}
-    .empfilter-actions button{flex:1; min-height:36px}
-    .empfilter-list{display:grid; gap:8px; max-height:260px; overflow:auto; padding-right:4px}
-    .empfilter-item{display:flex; align-items:center; gap:10px; font-size:13px; color:#eaf1ff; user-select:none}
-    .empfilter-item input{width:16px; height:16px; accent-color:#6ea8ff}
-    .empfilter-meta{font-size:11px; color:var(--muted)}
-    .empfilter-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px}
-    .empfilter-title{font-size:13px; font-weight:800; color:#fff}
-    .empfilter-close{width:32px; height:32px; border-radius:10px; display:grid; place-items:center; padding:0; font-size:18px; line-height:1; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:#fff; cursor:pointer}
-    .empfilter-close:hover{background:rgba(255,255,255,.12)}
-    .bottom-legend{margin-top:18px; padding:14px 16px; border:1px solid rgba(255,255,255,.10); border-radius:16px; background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02))}
-    .bottom-legend h4{margin:0 0 10px; font-size:14px; color:#fff}
-    .legend-grid{display:flex; flex-wrap:wrap; gap:10px 12px}
-    .legend-chip{display:inline-flex; align-items:center; gap:8px; min-height:34px; padding:7px 11px; border-radius:12px; border:1px solid rgba(255,255,255,.12); font-size:13px; color:#eaf1ff; white-space:nowrap}
-    .legend-dot{width:14px; height:14px; border-radius:5px; border:1px solid rgba(255,255,255,.18); flex:0 0 auto}
-    .legend-dot.code-u{background:var(--code-u-bg); border-color:var(--code-u-border)}
-    .legend-dot.code-up{background:var(--code-up-bg); border-color:var(--code-up-border)}
-    .legend-dot.code-o{background:var(--code-o-bg); border-color:var(--code-o-border)}
-    .legend-dot.code-l4{background:var(--code-l4-bg); border-color:var(--code-l4-border)}
-    .legend-dot.code-ut{background:var(--code-ut-bg); border-color:var(--code-ut-border)}
-    .legend-dot.code-t{background:var(--code-t-bg); border-color:var(--code-t-border)}
-    .legend-dot.code-z{background:var(--code-z-bg); border-color:var(--code-z-border)}
-    .bulk-top{z-index:12050 !important}
 
 </style>
 
@@ -556,23 +482,6 @@ tr.row-selected-employee .in:focus{
         </select>
       </div>
       <div class="pill">
-        <details id="visibleEmployeesBox" class="empfilter">
-          <summary><span>Podgląd osób:</span> <b id="visibleEmployeesLabel" style="color:#fff">Wszyscy</b></summary>
-          <div class="empfilter-panel">
-            <div class="empfilter-head">
-              <div class="empfilter-title">Podgląd osób</div>
-              <button id="visibleEmployeesCloseBtn" class="empfilter-close" type="button" aria-label="Zamknij">✕</button>
-            </div>
-            <div class="empfilter-actions">
-              <button id="visibleEmployeesAllBtn" type="button">Wszyscy</button>
-              <button id="visibleEmployeesClearBtn" type="button">Wyczyść</button>
-            </div>
-            <div id="visibleEmployeesList" class="empfilter-list"></div>
-            <div class="empfilter-meta">Wybierz tylko osoby, które chcesz widzieć w głównej tabeli. Wybrany pracownik do edycji pozostanie widoczny.</div>
-          </div>
-        </details>
-      </div>
-      <div class="pill">
         <span style="font-size:12px;color:var(--muted)">Widok:</span>
         <select id="viewSel">
           <option value="month">Miesiąc (edycja)</option>
@@ -585,7 +494,7 @@ tr.row-selected-employee .in:focus{
       <button class="btn-primary" id="saveBtn">Zapisz teraz</button>
       <button id="bulkBtn" type="button">Masowe wpisy</button>
       <button id="adminBtn" type="button">Panel admina</button>
-      <!-- resetBtn usunięty z paska głównego -->
+      <button class="btn-danger" id="resetBtn" style="display:none">Reset (ten komputer)</button>
       <button id="adminLogoutBtn" type="button" style="display:none">Wyloguj admina</button>
     </div>
   </header>
@@ -601,26 +510,13 @@ tr.row-selected-employee .in:focus{
 
       <div class="mainhead">
         <h3 id="mainTitle">Styczeń 2026</h3>
-        <div style="font-size:12px;color:var(--muted)">zielone: nadgodziny • czerwone: do odrobienia • żółte: OK • kody: U/UP/O/L4/UT/T/Z</div>
+        <div style="font-size:12px;color:var(--muted)">zielone: nadgodziny • czerwone: do odrobienia • żółte: OK • kody: U/O/L4/UT/T/Z</div>
       </div>
 
       <div class="tablewrap" id="tableWrap"></div>
 
-      <section class="bottom-legend" aria-label="Legenda kodów">
-        <h4>Legenda kodów</h4>
-        <div class="legend-grid">
-          <span class="legend-chip"><span class="legend-dot code-u"></span><b>U</b> urlop</span>
-          <span class="legend-chip"><span class="legend-dot code-up"></span><b>UP</b> urlop planowany</span>
-          <span class="legend-chip"><span class="legend-dot code-o"></span><b>O</b> opieka</span>
-          <span class="legend-chip"><span class="legend-dot code-l4"></span><b>L4</b> chorobowe</span>
-          <span class="legend-chip"><span class="legend-dot code-ut"></span><b>UT</b> urlop za targi</span>
-          <span class="legend-chip"><span class="legend-dot code-t"></span><b>T</b> targi</span>
-          <span class="legend-chip"><span class="legend-dot code-z"></span><b>Z</b> zdalnie</span>
-        </div>
-      </section>
-
       <div class="footer">
-        <div>Dane zapisują się automatycznie we wspólnej bazie Firebase. „Zapisz teraz” tylko ręcznie wymusza natychmiastowy zapis.</div>
+        <div>Dane zapisują się lokalnie w przeglądarce (localStorage). Kliknij “Zapisz teraz”.</div>
         <div>© 2025–2035</div>
       </div>
     </main>
@@ -639,7 +535,7 @@ tr.row-selected-employee .in:focus{
       </div>
 
       <div class="modal-body">
-        <label id="adminPassLabel" class="modal-label" for="adminPass">Hasło</label>
+        <label class="modal-label" for="adminPass">Hasło</label>
         <input id="adminPass" class="modal-input" type="password" placeholder="Wpisz hasło…" autocomplete="current-password" />
         <div id="adminMsg" class="modal-msg" style="display:none"></div>
 
@@ -655,22 +551,10 @@ tr.row-selected-employee .in:focus{
             <label for="adminHolidaysToggle" style="cursor:pointer;user-select:none">Podświetl święta i dni wolne (weekendy + ustawowe)</label>
           </div>
 
-          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px 0">
-            <label for="adminMonthTableMode" style="min-width:170px;color:var(--muted);font-size:12px">Układ miesiąca</label>
-            <select id="adminMonthTableMode" class="btn" style="min-width:300px">
-              <option value="split">Podzielony: dni 1–16 i 17–31</option>
-              <option value="single">Cały miesiąc w jednej tabeli</option>
-            </select>
-            <span style="color:var(--muted);font-size:12px">Dodatkowy widok kompaktowy — cały miesiąc w jednym wierszu.</span>
-          </div>
-
-          <details id="adminColorsDetails" class="admin-accordion" style="margin:0 0 16px 0; border:1px solid rgba(255,255,255,.12); border-radius:14px; background:rgba(255,255,255,.04); overflow:hidden"><summary style="list-style:none; cursor:pointer; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px"><span style="font-weight:700">Oznaczenia i kolory kodów</span><span style="color:var(--muted); font-size:12px">U / UP / O / L4 / UT / T / Z</span></summary><div style="padding:12px 14px; border-top:1px solid rgba(255,255,255,.10)"><div class="modal-sub" style="margin:0 0 10px 0">Kolory podświetleń kodów</div>
+          <details id="adminColorsDetails" class="admin-accordion" style="margin:0 0 16px 0; border:1px solid rgba(255,255,255,.12); border-radius:14px; background:rgba(255,255,255,.04); overflow:hidden"><summary style="list-style:none; cursor:pointer; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px"><span style="font-weight:700">Oznaczenia i kolory kodów</span><span style="color:var(--muted); font-size:12px">U / O / L4 / UT / T / Z</span></summary><div style="padding:12px 14px; border-top:1px solid rgba(255,255,255,.10)"><div class="modal-sub" style="margin:0 0 10px 0">Kolory podświetleń kodów</div>
           <div class="admin-colors" style="display:grid;grid-template-columns:1fr 120px;gap:10px;align-items:center;margin:0 0 14px 0">
             <div style="color:var(--muted);font-size:12px">U (urlop)</div>
             <input id="adminColorU" type="color" style="height:40px;width:120px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06)" />
-
-            <div style="color:var(--muted);font-size:12px">UP (urlop planowany)</div>
-            <input id="adminColorUP" type="color" style="height:40px;width:120px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06)" />
 
             <div style="color:var(--muted);font-size:12px">O (opieka)</div>
             <input id="adminColorO" type="color" style="height:40px;width:120px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06)" />
@@ -839,29 +723,10 @@ tr.row-selected-employee .in:focus{
               <div class="admin-note">
                 <b>Edycja</b> przenosi dane starej osoby na nową nazwę (migracja całego roku).
               </div>
-              <div class="admin-note" style="margin-top:10px">Czyszczenie całego pliku przeniesiono na sam dół panelu admina do zakładki <b>STREFA NIEBEZPIECZNA</b>.</div>
+              <button id="adminResetBtn" type="button" class="btn-danger">Reset (ten komputer)</button>
             </div>
           </div>
-        
-          <details id="adminDangerDetails" class="admin-accordion" style="margin:16px 0 0 0; border:1px solid rgba(255,70,70,.28); border-radius:14px; background:rgba(120,0,0,.12); overflow:hidden">
-            <summary style="list-style:none; cursor:pointer; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px">
-              <span style="font-weight:800; color:#ff8f8f; letter-spacing:.3px">STREFA NIEBEZPIECZNA</span>
-              <span style="color:rgba(255,255,255,.72); font-size:12px">wyczyszczenie całego pliku</span>
-            </summary>
-            <div style="padding:14px; border-top:1px solid rgba(255,255,255,.10)">
-              <div style="color:#ffb3b3; font-size:13px; margin:0 0 10px 0">
-                Ta operacja wyczyści cały plik dla wszystkich użytkowników w tej bazie. Jest nieodwracalna.
-              </div>
-              <label class="admin-check" style="margin:0 0 12px 0">
-                <input id="adminDangerAck" type="checkbox" />
-                Rozumiem że usuwam wszystkie dane
-              </label>
-              <button id="adminDangerResetBtn" type="button" class="btn-danger" style="width:100%; background:linear-gradient(180deg,#ff2a2a,#c40000); border-color:rgba(255,70,70,.7); color:#fff; font-weight:800; box-shadow:0 10px 28px rgba(196,0,0,.28)">Wyczyść cały plik</button>
-              <div style="color:#ffb3b3; font-size:12px; margin-top:10px">
-                Po kliknięciu trzeba dodatkowo wpisać dokładnie: <b>Tak, chcę wyczyścić cały plik</b>
-              </div>
-            </div>
-          </details>
+        </div></div></details>
       </div>
 
       <!-- Usunięto dolny pasek akcji: zamknięcie odbywa się przez ✕ w nagłówku -->
@@ -871,40 +736,29 @@ tr.row-selected-employee .in:focus{
 
 
 <!-- BULK MODAL -->
-  <div id="bulkModal" class="modal bulk-top" aria-hidden="true" style="display:none">
+  <div id="bulkModal" class="modal" aria-hidden="true" style="display:none">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="bulkTitle">
       <div class="modal-head">
         <h3 id="bulkTitle">Masowe wpisy</h3>
         <button id="bulkCloseBtn" type="button" aria-label="Zamknij" style="border-radius:12px">✕</button>
       </div>
       <div class="modal-body">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px" id="bulkHint">Wybierz pracownika i zakres dni dla aktualnie otwartego miesiąca.</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px" id="bulkHint">Kliknij najpierw komórkę w tabeli, żeby wybrać pracownika i miesiąc.</div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
           <div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Pracownik</div>
-            <select id="bulkEmployee" class="btn" style="width:100%;min-height:44px"></select>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Od dnia</div>
+            <input id="bulkFrom" class="in" type="number" min="1" max="31" value="1" style="text-align:left;padding-left:10px" />
           </div>
           <div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Zakres / rok</div>
-            <div id="bulkMonthLabel" class="admin-note" style="min-height:44px;display:flex;align-items:center"></div>
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-          <div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Od daty</div>
-            <input id="bulkFrom" class="modal-input" type="date" style="text-align:left;padding-left:10px" />
-          </div>
-          <div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Do daty</div>
-            <input id="bulkTo" class="modal-input" type="date" style="text-align:left;padding-left:10px" />
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Do dnia</div>
+            <input id="bulkTo" class="in" type="number" min="1" max="31" value="1" style="text-align:left;padding-left:10px" />
           </div>
         </div>
 
         <div style="margin-bottom:10px">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Wpis (np. U, UP, L4, O, UT, T, Z, 2, -5, 0,5)</div>
-          <input id="bulkVal" class="in" type="text" placeholder="U / UP / L4 / O / UT / T / Z / 2 / -5" style="text-align:left;padding-left:10px" />
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Wpis (np. U, L4, O, UT, T, Z, 2, -5, 0,5)</div>
+          <input id="bulkVal" class="in" type="text" placeholder="U / L4 / O / UT / T / Z / 2 / -5" style="text-align:left;padding-left:10px" />
         </div>
 
         <div style="font-size:12px;color:var(--muted)">
@@ -987,7 +841,7 @@ tr.row-selected-employee .in:focus{
     "Agnes Blau",
     "Aga Bor",
     "Hana Dana",
-    "Nitka",
+    "Bucku Design",
     "Justi",
     "Kosik",
     "Martusia",
@@ -1000,8 +854,7 @@ tr.row-selected-employee .in:focus{
     "EMP-002": "Agnes Blau",
     "EMP-003": "Aga Bor",
     "EMP-004": "Hana Dana",
-    "EMP-005": "Nitka",
-    "Bucku Design": "Nitka",
+    "EMP-005": "Bucku Design",
     "EMP-006": "Justi",
     "EMP-007": "Kosik",
     "EMP-008": "Martusia",
@@ -1011,7 +864,7 @@ tr.row-selected-employee .in:focus{
     "Anita Bucka": "Agnes Blau",
     "Joanna Knycz": "Aga Bor",
     "Agnieszka Panek": "Hana Dana",
-    "Marta Bogusz": "Nitka",
+    "Marta Bogusz": "Bucku Design",
     "Rafał Kukla": "Justi",
     "Maria Halotta": "Kosik",
     "Zuzanna Jadczyk": "Martusia",
@@ -1050,8 +903,6 @@ tr.row-selected-employee .in:focus{
     adminPass: document.getElementById('adminPass'),
     adminMsg: document.getElementById('adminMsg'),
     adminLoginBtn: document.getElementById('adminLoginBtn'),
-    adminLoginRow: document.getElementById('adminLoginRow'),
-    adminPassLabel: document.getElementById('adminPassLabel'),
     adminCancelBtn: document.getElementById('adminCancelBtn'),
     adminCloseBtn: document.getElementById('adminCloseBtn'),
     adminTools: document.getElementById('adminTools'),
@@ -1060,20 +911,15 @@ tr.row-selected-employee .in:focus{
     adminEmpAddBtn: document.getElementById('adminEmpAddBtn'),
     adminRemoveDataChk: document.getElementById('adminRemoveDataChk'),
     adminResetBtn: document.getElementById('adminResetBtn'),
-    adminDangerDetails: document.getElementById('adminDangerDetails'),
-    adminDangerAck: document.getElementById('adminDangerAck'),
-    adminDangerResetBtn: document.getElementById('adminDangerResetBtn'),
     fbAuthModal: document.getElementById('firebaseAuthModal'),
     fbEmail: document.getElementById('fbEmail'),
     fbPass: document.getElementById('fbPass'),
     fbAuthMsg: document.getElementById('fbAuthMsg'),
     fbLoginBtn: document.getElementById('fbLoginBtn'),
     adminHolidaysToggle: document.getElementById('adminHolidaysToggle'),
-    adminMonthTableMode: document.getElementById('adminMonthTableMode'),
     adminSaveSettings: document.getElementById('adminSaveSettings'),
     adminSettingsSaved: document.getElementById('adminSettingsSaved'),
     adminColorU: document.getElementById('adminColorU'),
-    adminColorUP: document.getElementById('adminColorUP'),
     adminColorO: document.getElementById('adminColorO'),
     adminColorL4: document.getElementById('adminColorL4'),
     adminColorUT: document.getElementById('adminColorUT'),
@@ -1088,18 +934,10 @@ tr.row-selected-employee .in:focus{
     bulkCloseBtn: document.getElementById('bulkCloseBtn'),
     bulkApplyBtn: document.getElementById('bulkApplyBtn'),
     bulkCancelBtn: document.getElementById('bulkCancelBtn'),
-    bulkEmployee: document.getElementById('bulkEmployee'),
-    bulkMonthLabel: document.getElementById('bulkMonthLabel'),
     bulkFrom: document.getElementById('bulkFrom'),
     bulkTo: document.getElementById('bulkTo'),
     bulkVal: document.getElementById('bulkVal'),
     bulkHint: document.getElementById('bulkHint'),
-    visibleEmployeesBox: document.getElementById('visibleEmployeesBox'),
-    visibleEmployeesLabel: document.getElementById('visibleEmployeesLabel'),
-    visibleEmployeesList: document.getElementById('visibleEmployeesList'),
-    visibleEmployeesAllBtn: document.getElementById('visibleEmployeesAllBtn'),
-    visibleEmployeesClearBtn: document.getElementById('visibleEmployeesClearBtn'),
-    visibleEmployeesCloseBtn: document.getElementById('visibleEmployeesCloseBtn'),
 
     // Security
     secAdminOld: document.getElementById('secAdminOld'),
@@ -1160,6 +998,7 @@ tr.row-selected-employee .in:focus{
   if (adminSubEl) adminSubEl.textContent = "Funkcje administracyjne (wspólna baza online)";
   const adminToolsSub = document.querySelector('#adminTools .modal-sub');
   if (adminToolsSub) adminToolsSub.textContent = "Zarządzanie pracownikami (lista wspólna dla wszystkich)";
+  if (els.adminResetBtn) els.adminResetBtn.textContent = "Reset (wszyscy użytkownicy)";
 
   // Add cloud status + logout button in toolbar
   const toolbar = document.querySelector('.toolbar');
@@ -1249,7 +1088,6 @@ tr.row-selected-employee .in:focus{
   }
   const CODE_META = {
     U: { label: 'Urlop', cls: 'good' },
-    UP: { label: 'Urlop planowany', cls: 'good' },
     O: { label: 'Opieka', cls: 'warn' },
     L4: { label: 'L4', cls: 'bad' },
     UT: { label: 'Urlop za targi', cls: 'good' },
@@ -1259,7 +1097,7 @@ tr.row-selected-employee .in:focus{
   function getTrackedCodes(){
     const cc = (state && state.settings && state.settings.codeColors && typeof state.settings.codeColors === 'object') ? state.settings.codeColors : defaultState().settings.codeColors;
     const keys = Object.keys(cc || {}).filter(Boolean);
-    const preferred = ['U','UP','O','L4','UT','T','Z'];
+    const preferred = ['U','O','L4','UT','T','Z'];
     const ordered = [];
     preferred.forEach(k=>{ if(keys.includes(k)) ordered.push(k); });
     keys.forEach(k=>{ if(!ordered.includes(k)) ordered.push(k); });
@@ -1343,7 +1181,6 @@ tr.row-selected-employee .in:focus{
     add(new Date(year,7,15), "Wniebowzięcie NMP");
     add(new Date(year,10,1), "Wszystkich Świętych");
     add(new Date(year,10,11), "Narodowe Święto Niepodległości");
-    if(year >= 2025) add(new Date(year,11,24), "Wigilia");
     add(new Date(year,11,25), "Boże Narodzenie (1)");
     add(new Date(year,11,26), "Boże Narodzenie (2)");
     return map;
@@ -1357,17 +1194,6 @@ tr.row-selected-employee .in:focus{
   function holidayName(y,m,d){
     return getHolidayMap(y)[fmtDateKey(y,m,d)] || "";
   }
-  function isNonWorkingDay(y,m,d){
-    return isWeekend(y,m,d) || !!holidayName(y,m,d);
-  }
-  function isRestrictedCodeOnNonWorkingDay(code, y, m, d){
-    return !!code && ['U','UT','O','Z'].includes(code) && isNonWorkingDay(y,m,d);
-  }
-  function getRestrictedCodeMessage(code, y, m, d){
-    if(!isRestrictedCodeOnNonWorkingDay(code, y, m, d)) return '';
-    const dayLabel = holidayName(y,m,d) || (isWeekend(y,m,d) ? 'weekend' : 'dzień wolny');
-    return `Kodu ${code} nie można wpisać w dniu wolnym (${dayLabel}). Dozwolone są m.in. T, L4 i UP.`;
-  }
 function normalizeCellValue(val){
     return parseCompositeCell(val).normalized;
   }
@@ -1375,7 +1201,6 @@ function normalizeCellValue(val){
     const v = getCodeFromCellValue(val);
     if(!v) return '';
     if(v==='U') return 'code-u';
-    if(v==='UP') return 'code-up';
     if(v==='O') return 'code-o';
     if(v==='L4') return 'code-l4';
     if(v==='UT') return 'code-ut';
@@ -1385,7 +1210,7 @@ function normalizeCellValue(val){
   }
   function paintDayInput(input){
     if(!input) return;
-    input.classList.remove('code-u','code-up','code-o','code-l4','code-ut','code-t','code-z','num-pos','num-neg');
+    input.classList.remove('code-u','code-o','code-l4','code-ut','code-t','code-z','num-pos','num-neg');
     const cls = codeClassForValue(input.value);
     if(cls) input.classList.add(cls);
     const parsed = parseCompositeCell(input.value);
@@ -1420,50 +1245,6 @@ function normalizeCellValue(val){
       .concat(employees.map(emp=>`<option value="${attrEscape(emp)}" ${emp===selectedEmployee?'selected':''}>${emp}</option>`));
     els.employeeSel.innerHTML = options.join('');
   }
-  function sanitizeVisibleEmployees(){
-    visibleEmployees = (Array.isArray(visibleEmployees) ? visibleEmployees : []).filter(emp => employees.includes(emp));
-    if(visibleEmployeesMode !== 'all' && visibleEmployeesMode !== 'custom') visibleEmployeesMode = (visibleEmployees.length ? 'custom' : 'all');
-    try{ localStorage.setItem('nadgodziny_visible_employees', JSON.stringify(visibleEmployees)); }catch(_e){}
-    try{ localStorage.setItem('nadgodziny_visible_employees_mode', visibleEmployeesMode); }catch(_e){}
-  }
-  function getVisibleEmployeesForTable(){
-    sanitizeVisibleEmployees();
-    const list = (visibleEmployeesMode === 'all') ? employees.slice() : visibleEmployees.slice();
-    if(selectedEmployee && employees.includes(selectedEmployee) && !list.includes(selectedEmployee)) list.push(selectedEmployee);
-    return list;
-  }
-  function updateVisibleEmployeesLabel(){
-    if(!els.visibleEmployeesLabel) return;
-    sanitizeVisibleEmployees();
-    const count = visibleEmployees.length;
-    if(visibleEmployeesMode === 'all' || count >= employees.length) els.visibleEmployeesLabel.textContent = 'Wszyscy';
-    else if(count === 0) els.visibleEmployeesLabel.textContent = 'Brak';
-    else if(count === 1) els.visibleEmployeesLabel.textContent = visibleEmployees[0];
-    else els.visibleEmployeesLabel.textContent = `${count} osoby`;
-  }
-  function populateVisibleEmployeesFilter(){
-    if(!els.visibleEmployeesList) return;
-    sanitizeVisibleEmployees();
-    els.visibleEmployeesList.innerHTML = employees.map(emp=>{
-      const checked = (visibleEmployeesMode === 'all') || visibleEmployees.includes(emp);
-      return `<label class="empfilter-item"><input type="checkbox" data-visible-emp="${attrEscape(emp)}" ${checked?'checked':''}><span>${escapeHtml(emp)}</span></label>`;
-    }).join('');
-    updateVisibleEmployeesLabel();
-  }
-  function setVisibleEmployees(next, modeOverride){
-    visibleEmployees = Array.isArray(next) ? next.filter(emp=>employees.includes(emp)) : [];
-    visibleEmployeesMode = modeOverride || (visibleEmployees.length >= employees.length ? 'all' : 'custom');
-    sanitizeVisibleEmployees();
-    populateVisibleEmployeesFilter();
-    render();
-  }
-
-  function getMonthTableMode(){
-    return (state && state.settings && state.settings.monthTableMode === 'single') ? 'single' : 'split';
-  }
-  function isSingleMonthTableView(){
-    return getMonthTableMode() === 'single';
-  }
   function showToast(msg, ok=true){
     if (cloudBadge) {
       cloudBadge.textContent = `Chmura: ${msg}`;
@@ -1488,7 +1269,6 @@ function normalizeCellValue(val){
     if(!cc) return;
     const map = {
       U: ['--code-u-bg','--code-u-border'],
-      UP: ['--code-up-bg','--code-up-border'],
       O: ['--code-o-bg','--code-o-border'],
       L4: ['--code-l4-bg','--code-l4-border'],
       UT: ['--code-ut-bg','--code-ut-border'],
@@ -1516,7 +1296,6 @@ function normalizeCellValue(val){
     const out = {
       holidaysEnabled: typeof src.holidaysEnabled === 'boolean' ? src.holidaysEnabled : def.holidaysEnabled,
       codeColors: Object.assign({}, def.codeColors, (src.codeColors && typeof src.codeColors === 'object') ? src.codeColors : {}),
-      monthTableMode: src.monthTableMode === 'single' ? 'single' : 'split',
       yearLocked: !!src.yearLocked,
       monthLocks: {}
     };
@@ -1606,8 +1385,7 @@ function normalizeCellValue(val){
     const employees = sortEmployees(defaultEmployees);
     const s = { year: currentYear, updatedAt: Date.now(), employees, months: {}, settings: { 
       holidaysEnabled: true,
-      codeColors: { U: "#2e8b57", UP: "#4a90e2", O: "#8158d6", L4: "#d65931", UT: "#1f8f4e", T: "#ffb347", Z: "#4682b4" },
-      monthTableMode: 'split',
+      codeColors: { U: "#2e8b57", O: "#8158d6", L4: "#d65931", UT: "#1f8f4e", T: "#ffb347", Z: "#4682b4" },
       monthLocks: {},
       yearLocked: false
     } };
@@ -1635,15 +1413,14 @@ function normalizeCellValue(val){
       settings: {
         holidaysEnabled: (obj.settings && typeof obj.settings.holidaysEnabled === "boolean") ? obj.settings.holidaysEnabled : base.settings.holidaysEnabled,
         codeColors: (() => {
-          const def = (base.settings && base.settings.codeColors) ? base.settings.codeColors : { U: "#2e8b57", UP: "#4a90e2", O: "#8158d6", L4: "#d65931", UT: "#1f8f4e", T: "#ffb347", Z: "#4682b4" };
+          const def = (base.settings && base.settings.codeColors) ? base.settings.codeColors : { U: "#2e8b57", O: "#8158d6", L4: "#d65931", UT: "#1f8f4e", T: "#ffb347", Z: "#4682b4" };
           const src = (obj.settings && typeof obj.settings.codeColors === 'object') ? obj.settings.codeColors : {};
           const pick = (k) => {
             const v = String(src[k] || '').trim();
             return /^#([0-9a-fA-F]{6})$/.test(v) ? v : def[k];
           };
-          return { U: pick('U'), UP: pick('UP'), O: pick('O'), L4: pick('L4'), UT: pick('UT'), T: pick('T'), Z: pick('Z') };
+          return { U: pick('U'), O: pick('O'), L4: pick('L4'), UT: pick('UT'), T: pick('T'), Z: pick('Z') };
         })(),
-        monthTableMode: (obj.settings && obj.settings.monthTableMode === 'single') ? 'single' : 'split',
         yearLocked: !!(obj.settings && obj.settings.yearLocked),
         monthLocks: (() => {
           const src = (obj.settings && typeof obj.settings.monthLocks === 'object' && obj.settings.monthLocks) ? obj.settings.monthLocks : {};
@@ -1675,15 +1452,6 @@ function normalizeCellValue(val){
   let currentMonth = TODAY_MONTH;
   let currentView = "month";
   let selectedEmployee = localStorage.getItem('nadgodziny_selected_employee') || '';
-  let visibleEmployeesMode = 'all';
-  let visibleEmployees = [];
-  try{
-    const rawMode = String(localStorage.getItem('nadgodziny_visible_employees_mode') || '').trim();
-    if(rawMode === 'all' || rawMode === 'custom') visibleEmployeesMode = rawMode;
-    const raw = JSON.parse(localStorage.getItem('nadgodziny_visible_employees') || '[]');
-    visibleEmployees = Array.isArray(raw) ? raw.map(String) : [];
-    if(!rawMode) visibleEmployeesMode = visibleEmployees.length ? 'custom' : 'all';
-  }catch(_e){ visibleEmployeesMode = 'all'; visibleEmployees = []; }
 
   function forceTodayPeriod(){
     if (YEARS.includes(TODAY_YEAR)) currentYear = TODAY_YEAR;
@@ -1992,25 +1760,13 @@ function normalizeCellValue(val){
   }
   function refreshAdminUI(){
     const on = isAdmin();
-    if(els.resetBtn) els.resetBtn.style.display = "none";
+    if(els.resetBtn) els.resetBtn.style.display = on ? "" : "none";
     if(els.adminLogoutBtn) els.adminLogoutBtn.style.display = on ? "" : "none";
     if(els.adminTools) els.adminTools.style.display = on ? "" : "none";
-    if(els.adminLoginRow) els.adminLoginRow.style.display = on ? "none" : "flex";
-    if(els.adminPassLabel) els.adminPassLabel.style.display = on ? "none" : "";
-    if(els.adminPass){ els.adminPass.style.display = on ? "none" : ""; if(!on) els.adminPass.disabled = false; else els.adminPass.disabled = true; }
-    if(els.adminDangerDetails){
-      els.adminDangerDetails.open = false;
-      els.adminDangerDetails.style.display = on ? "" : "none";
-    }
-    if(els.adminDangerAck) els.adminDangerAck.checked = false;
     if(els.adminSaveSettings){ els.adminSaveSettings.disabled = !on; }
     if(els.adminHolidaysToggle){
       els.adminHolidaysToggle.checked = !!(state.settings && state.settings.holidaysEnabled);
       els.adminHolidaysToggle.disabled = !on;
-    }
-    if(els.adminMonthTableMode){
-      els.adminMonthTableMode.value = (state.settings && state.settings.monthTableMode === 'single') ? 'single' : 'split';
-      els.adminMonthTableMode.disabled = !on;
     }
     if(els.adminSettingsSaved){ els.adminSettingsSaved.textContent = ''; }
 
@@ -2021,7 +1777,6 @@ function normalizeCellValue(val){
       el.disabled = !on;
     };
     setPicker(els.adminColorU, cc.U);
-    setPicker(els.adminColorUP, cc.UP);
     setPicker(els.adminColorO, cc.O);
     setPicker(els.adminColorL4, cc.L4);
     setPicker(els.adminColorUT, cc.UT);
@@ -2042,8 +1797,6 @@ function normalizeCellValue(val){
     if(!els.adminModal) return;
     if(els.adminMsg){ els.adminMsg.style.display = "none"; els.adminMsg.className="modal-msg"; }
     if(els.adminPass) els.adminPass.value = "";
-    if(els.adminDangerAck) els.adminDangerAck.checked = false;
-    if(els.adminDangerDetails) els.adminDangerDetails.open = false;
     els.adminModal.style.display = "flex";
     els.adminModal.setAttribute("aria-hidden", "false");
     refreshAdminUI();
@@ -2157,30 +1910,25 @@ function normalizeCellValue(val){
   if(els.adminCloseBtn) els.adminCloseBtn.addEventListener('click', closeAdminModal);
   if(els.adminCancelBtn) els.adminCancelBtn.addEventListener('click', closeAdminModal);
 
-  if(els.adminDangerResetBtn){
-    els.adminDangerResetBtn.addEventListener('click', async ()=>{
+  if(els.adminResetBtn){
+    els.adminResetBtn.addEventListener('click', async ()=>{
       if(!isAdmin()) return;
-      if(!els.adminDangerAck || !els.adminDangerAck.checked){
-        showAdminMsg("Najpierw zaznacz: Rozumiem że usuwam wszystkie dane.", false);
-        if(els.adminDangerDetails) els.adminDangerDetails.open = true;
-        return;
-      }
-      const phrase = "Tak, chcę wyczyścić cały plik";
-      const typed = prompt(`Aby potwierdzić wpisz dokładnie: ${phrase}`);
-      if(typed !== phrase){
-        alert("Czyszczenie anulowane.");
-        return;
-      }
-      state = defaultState();
-      employees = state.employees.slice();
-      render();
-      if(els.adminDangerAck) els.adminDangerAck.checked = false;
-      if(els.adminDangerDetails) els.adminDangerDetails.open = false;
-      try {
-        await saveRemote(false);
-        showAdminMsg("Wyczyszczono cały plik w chmurze ✅", true);
-      } catch(e) {
-        showAdminMsg("Błąd czyszczenia pliku w chmurze.", false);
+      const phrase = "potwierdzamreset";
+const typed = prompt(`Aby potwierdzić reset, wpisz dokładnie: ${phrase}`);
+if(typed !== phrase){
+  alert("Reset anulowany.");
+  return;
+}
+{
+        state = defaultState();
+        employees = state.employees.slice();
+        render();
+        try {
+          await saveRemote(false);
+          showAdminMsg("Wyczyszczono dane w chmurze ✅", true);
+        } catch(e) {
+          showAdminMsg("Błąd resetu w chmurze.", false);
+        }
       }
     });
   }
@@ -2335,17 +2083,6 @@ function normalizeCellValue(val){
         if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = "Niezapisane zmiany…";
       });
 
-      if(els.adminMonthTableMode){
-        els.adminMonthTableMode.addEventListener('change', ()=>{
-          if(!isAdmin()) return;
-          state.settings = state.settings || {};
-          state.settings.monthTableMode = els.adminMonthTableMode.value === 'single' ? 'single' : 'split';
-          state.updatedAt = Date.now();
-          render();
-          if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = "Niezapisane zmiany…";
-        });
-      }
-
       const markDirty = () => {
         state.updatedAt = Date.now();
         applyCodeColors();
@@ -2367,7 +2104,6 @@ function normalizeCellValue(val){
         });
       };
       attachColorPicker(els.adminColorU, 'U');
-      attachColorPicker(els.adminColorUP, 'UP');
       attachColorPicker(els.adminColorO, 'O');
       attachColorPicker(els.adminColorL4, 'L4');
       attachColorPicker(els.adminColorUT, 'UT');
@@ -2379,7 +2115,7 @@ function normalizeCellValue(val){
           if(!isAdmin()) return;
           const def = defaultState().settings.codeColors;
           state.settings = state.settings || {};
-          state.settings.codeColors = { U: def.U, UP: def.UP, O: def.O, L4: def.L4, UT: def.UT, T: def.T, Z: def.Z };
+          state.settings.codeColors = { U: def.U, O: def.O, L4: def.L4, UT: def.UT, T: def.T, Z: def.Z };
           refreshAdminUI();
           markDirty();
         });
@@ -2390,7 +2126,7 @@ function normalizeCellValue(val){
           state.updatedAt = Date.now();
           saveRemote(true);
           if(els.adminSettingsSaved) els.adminSettingsSaved.textContent = "Zapisano ✓";
-          showToast("Zapisano ustawienia");
+          showToast(state.settings && state.settings.holidaysEnabled ? "Zapisano ustawienia (święta: WŁ.)" : "Zapisano ustawienia (święta: WYŁ.)");
         });
       }
 }
@@ -2445,7 +2181,6 @@ function normalizeCellValue(val){
     const t = e.target;
     if(t && t.classList && t.classList.contains('in') && t.dataset && t.dataset.emp){
       __lastCell = { emp: t.dataset.emp, month: Number(t.dataset.month), day: Number(t.dataset.day) };
-      if(typeof t.dataset.committed === 'undefined') t.dataset.committed = String(t.value || '');
     }
   });
 
@@ -2469,20 +2204,10 @@ function normalizeCellValue(val){
     if(!state.months[m][emp]) state.months[m][emp] = Array(31).fill("");
     const arr = state.months[m][emp];
 
-    const committed = t.dataset.committed ?? (arr[d-1] ?? '');
     const v = normalizeCellValue(t.value);
-    const blockedMsg = getRestrictedCodeMessage(getCodeFromCellValue(v), currentYear, m, d);
-    if(blockedMsg){
-      showToast(blockedMsg, false);
-      t.value = committed;
-      arr[d-1] = committed;
-      paintDayInput(t);
-      return;
-    }
     t.value = v;
     paintDayInput(t);
     arr[d-1] = v;
-    t.dataset.committed = v;
 
     // Update totals for this employee in this month (both blocks)
     const totals = calcMonthTotalsForEmp(m, emp);
@@ -2514,147 +2239,90 @@ function normalizeCellValue(val){
 
 
   // ====== Masowe wpisy (zakres) ======
-  function populateBulkEmployeeSelect(pref=''){
-    if(!els.bulkEmployee) return;
-    const selected = pref || selectedEmployee || (__lastCell && __lastCell.emp) || '';
-    const options = ['<option value="">Wybierz pracownika</option>']
-      .concat(employees.map(emp=>`<option value="${attrEscape(emp)}" ${emp===selected?'selected':''}>${emp}</option>`));
-    els.bulkEmployee.innerHTML = options.join('');
-  }
   function openBulkModal(){
     if(!els.bulkModal) return;
-    try{ if(els.bulkModal.parentElement !== document.body) document.body.appendChild(els.bulkModal); }catch(_e){}
-    els.bulkModal.style.zIndex = '12050';
-    const m = currentMonth;
-    const dim = daysInMonth(currentYear, m);
-    const startDay = Math.min(Math.max((__lastCell && __lastCell.month===m ? (__lastCell.day || 1) : 1), 1), dim);
-    const startIso = fmtDateKey(currentYear, m, startDay);
-    populateBulkEmployeeSelect();
-    if(els.bulkMonthLabel) els.bulkMonthLabel.textContent = `Rok ${currentYear} • możesz zaznaczyć zakres przez kilka miesięcy`;
-    if(els.bulkFrom) {
-      els.bulkFrom.min = fmtDateKey(currentYear, 1, 1);
-      els.bulkFrom.max = fmtDateKey(currentYear, 12, 31);
-      els.bulkFrom.value = startIso;
+    if(!__lastCell || !__lastCell.emp || !__lastCell.month){
+      showToast("Kliknij najpierw komórkę w tabeli (żeby wybrać pracownika i miesiąc).");
+      return;
     }
-    if(els.bulkTo) {
-      els.bulkTo.min = fmtDateKey(currentYear, 1, 1);
-      els.bulkTo.max = fmtDateKey(currentYear, 12, 31);
-      els.bulkTo.value = startIso;
-    }
-    if(els.bulkVal) { els.bulkVal.value = ''; }
+    const dim = daysInMonth(currentYear, __lastCell.month);
+    const d = Math.min(Math.max(__lastCell.day || 1, 1), dim);
+    if(els.bulkFrom) { els.bulkFrom.max = String(dim); els.bulkFrom.value = String(d); }
+    if(els.bulkTo) { els.bulkTo.max = String(dim); els.bulkTo.value = String(d); }
+    if(els.bulkVal) { els.bulkVal.value = ""; els.bulkVal.focus(); }
     if(els.bulkHint){
-      const chosen = (els.bulkEmployee && els.bulkEmployee.value) || selectedEmployee || '—';
-      els.bulkHint.innerHTML = `Pracownik: <b>${escapeHtml(chosen)}</b> • Rok: <b>${currentYear}</b> • możesz objąć kilka miesięcy jednym wpisem • działa bez logowania do panelu admina`;
+      const locked = isMonthLocked(__lastCell.month);
+      els.bulkHint.innerHTML = `Pracownik: <b>${__lastCell.emp}</b> • Miesiąc: <b>${monthNames[__lastCell.month-1]} ${currentYear}</b>` + (locked ? ` • <b style="color:#ffb4b4">MIESIĄC ZAMKNIĘTY 🔒</b>` : ``);
     }
-    if(els.bulkApplyBtn) els.bulkApplyBtn.disabled = false;
-    els.bulkModal.style.display = 'flex';
-    els.bulkModal.setAttribute('aria-hidden','false');
-    setTimeout(()=>{ if(els.bulkEmployee && !els.bulkEmployee.value) els.bulkEmployee.focus(); else if(els.bulkVal) els.bulkVal.focus(); }, 0);
+    if(els.bulkApplyBtn){
+      els.bulkApplyBtn.disabled = isMonthLocked(__lastCell.month);
+    }
+    els.bulkModal.style.display = "flex";
+    els.bulkModal.setAttribute("aria-hidden","false");
   }
   function closeBulkModal(){
     if(!els.bulkModal) return;
-    els.bulkModal.style.display = 'none';
-    els.bulkModal.setAttribute('aria-hidden','true');
+    els.bulkModal.style.display = "none";
+    els.bulkModal.setAttribute("aria-hidden","true");
   }
   function applyBulk(){
-    const emp = (els.bulkEmployee?.value || selectedEmployee || (__lastCell && __lastCell.emp) || '').trim();
-    if(!emp){
-      showToast('Wybierz pracownika.');
-      if(els.bulkEmployee) els.bulkEmployee.focus();
+    if(!__lastCell) return;
+    const emp = __lastCell.emp;
+    const m = __lastCell.month;
+    const dim = daysInMonth(currentYear, m);
+
+    if(isMonthLocked(m)){
+      showToast("Ten miesiąc jest zamknięty. Odblokuj go w panelu admina.");
       return;
     }
 
-    const fromIso = String(els.bulkFrom?.value || '').trim();
-    const toIso = String(els.bulkTo?.value || '').trim();
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(fromIso) || !/^\d{4}-\d{2}-\d{2}$/.test(toIso)){
-      showToast('Wybierz poprawny zakres dat.');
-      return;
-    }
-    let start = new Date(`${fromIso}T00:00:00`);
-    let end = new Date(`${toIso}T00:00:00`);
-    if(Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())){
-      showToast('Wybierz poprawny zakres dat.');
-      return;
-    }
-    if(start > end){ const t = start; start = end; end = t; }
-    if(start.getFullYear() !== currentYear || end.getFullYear() !== currentYear){
-      showToast(`Masowe wpisy mogą obejmować kilka miesięcy, ale w obrębie roku ${currentYear}.`);
-      return;
-    }
+    let a = parseInt(els.bulkFrom?.value || "1", 10);
+    let b = parseInt(els.bulkTo?.value || "1", 10);
+    a = isFinite(a) ? a : 1;
+    b = isFinite(b) ? b : 1;
+    a = Math.min(Math.max(a,1), dim);
+    b = Math.min(Math.max(b,1), dim);
+    if(a>b){ const t=a; a=b; b=t; }
 
-    const raw = (els.bulkVal?.value || '').trim();
+    const raw = (els.bulkVal?.value || "").trim();
     if(!raw){
-      showToast('Wpisz wartość (np. U, UP, L4, 2, -5).');
+      showToast("Wpisz wartość (np. U, L4, 2, -5).");
       return;
     }
     const v = normalizeCellValue(raw);
-    if(!v){
-      showToast('Nieprawidłowy wpis. Użyj np. U, UP, L4, T, Z, 2, -5 lub T,4.');
-      return;
-    }
 
-    const code = getCodeFromCellValue(v);
-    const touchedMonths = [];
-    const touchedSet = new Set();
-    for(let dt = new Date(start.getTime()); dt <= end; dt.setDate(dt.getDate()+1)){
-      const mm = dt.getMonth()+1;
-      if(!touchedSet.has(mm)){
-        touchedSet.add(mm);
-        touchedMonths.push(mm);
+    if(!state.months[m]) state.months[m] = {};
+    if(!state.months[m][emp]) state.months[m][emp] = Array(31).fill("");
+    const arr = state.months[m][emp];
+
+    for(let d=a; d<=b; d++){
+      arr[d-1] = v;
+      const sel = `input.in[data-emp="${cssEscape(emp)}"][data-month="${m}"][data-day="${d}"]`;
+      const el = document.querySelector(sel);
+      if(el){
+        el.value = v;
+        paintDayInput(el);
       }
     }
-    const lockedMonths = touchedMonths.filter(mm => isMonthLocked(mm));
-    if(lockedMonths.length){
-      showToast(`Zakres obejmuje zamknięte miesiące: ${lockedMonths.map(mm=>monthNames[mm-1]).join(', ')}.`);
-      return;
-    }
 
-    let applied = 0;
-    let skipped = 0;
-    let firstApplied = null;
-    for(let dt = new Date(start.getTime()); dt <= end; dt.setDate(dt.getDate()+1)){
-      const y = dt.getFullYear();
-      const m = dt.getMonth()+1;
-      const d = dt.getDate();
-      if(isRestrictedCodeOnNonWorkingDay(code, y, m, d)){
-        skipped++;
-        continue;
-      }
-      if(!state.months[m]) state.months[m] = {};
-      if(!state.months[m][emp]) state.months[m][emp] = Array(31).fill('');
-      state.months[m][emp][d-1] = v;
-      applied++;
-      if(!firstApplied) firstApplied = {m, d};
-    }
+    const totals = calcMonthTotalsForEmp(m, emp);
+    const rowSel = `tr[data-emp="${cssEscape(emp)}"][data-month="${m}"]`;
+    document.querySelectorAll(rowSel).forEach(row=>{
+      const saldoEl = row.querySelector('[data-role="saldo"]');
+      const statusEl = row.querySelector('[data-role="status"]');
+      if (saldoEl) saldoEl.innerHTML = `<span class="saldo ${totals.cls}">${fmt(totals.saldo)}</span>`;
+      if (statusEl) statusEl.innerHTML = `<span class="status ${totals.cls}">${totals.status}</span>`;
+    });
 
-    if(!applied){
-      showToast(code ? (getRestrictedCodeMessage(code, start.getFullYear(), start.getMonth()+1, start.getDate()) || 'W wybranym zakresie nie ma dni, do których można zastosować ten kod.') : 'Nie wpisano żadnych zmian.');
-      return;
-    }
-
-    if(selectedEmployee !== emp){
-      selectedEmployee = emp;
-      try{ localStorage.setItem('nadgodziny_selected_employee', emp); }catch(_e){}
-      populateEmployeeSelector();
-    }
-    render();
     setMonthPreview();
     queueSave(400);
+
     closeBulkModal();
-    if(firstApplied) requestCellFocus(emp, firstApplied.m, firstApplied.d);
-    const rangeLabel = `${formatDatePL(fromIso)} – ${formatDatePL(toIso)}`;
-    showToast(skipped ? `Wpisano "${v}" dla ${applied} dni (${rangeLabel}); pominięto ${skipped} dni wolnych.` : `Wpisano "${v}" dla ${applied} dni (${rangeLabel}).`);
+    const next = Math.min(b+1, dim);
+    requestCellFocus(emp, m, next);
+    showToast(`Wpisano "${v}" dla ${a}–${b}.`);
   }
 
-  if(els.bulkEmployee){
-    els.bulkEmployee.addEventListener('change', ()=>{
-      if(els.bulkHint){
-        const m = currentMonth;
-        const chosen = (els.bulkEmployee.value || '—');
-        els.bulkHint.innerHTML = `Pracownik: <b>${escapeHtml(chosen)}</b> • Rok: <b>${currentYear}</b> • możesz objąć kilka miesięcy jednym wpisem • działa bez logowania do panelu admina`;
-      }
-    });
-  }
   if(els.bulkBtn) els.bulkBtn.addEventListener('click', openBulkModal);
   if(els.bulkCloseBtn) els.bulkCloseBtn.addEventListener('click', closeBulkModal);
   if(els.bulkCancelBtn) els.bulkCancelBtn.addEventListener('click', closeBulkModal);
@@ -2948,37 +2616,30 @@ function normalizeCellValue(val){
             input.title = selectedEmployee ? 'Możesz wpisywać tylko w wybranym wierszu pracownika.' : 'Najpierw wybierz pracownika z listy u góry.';
           }
           input.value = arr[d-1] ?? "";
-          input.dataset.committed = arr[d-1] ?? "";
           input.disabled = (d>dim) || isMonthLocked(m) || !canEditEmployee(emp);
           paintDayInput(input);
 
           input.addEventListener('input', ()=>{
-            if(!canEditEmployee(emp)){ input.value = input.dataset.committed ?? (arr[d-1] ?? ""); return; }
-            input.value = String(input.value || '').toUpperCase();
+            if(!canEditEmployee(emp)){ input.value = arr[d-1] ?? ""; return; }
+            arr[d-1] = String(input.value || '').trim().toUpperCase();
             paintDayInput(input);
-          });
-          // keydown handled globally (ENTER / Shift+ENTER)
-          input.addEventListener('blur', ()=>{
-            const committed = input.dataset.committed ?? (arr[d-1] ?? "");
-            if(!canEditEmployee(emp)){ input.value = committed; paintDayInput(input); return; }
-            const v = normalizeCellValue(input.value);
-            const blockedMsg = getRestrictedCodeMessage(getCodeFromCellValue(v), currentYear, m, d);
-            if(blockedMsg){
-              showToast(blockedMsg, false);
-              input.value = committed;
-              arr[d-1] = committed;
-              paintDayInput(input);
-              return;
-            }
-            input.value = v;
-            paintDayInput(input);
-            arr[d-1] = v;
-            input.dataset.committed = v;
             const t = calcMonthTotalsForEmp(m, emp);
             document.querySelectorAll(`tr[data-emp="${cssEscape(emp)}"][data-month="${m}"]`).forEach(row=>{
               row.querySelector('[data-role="saldo"]').innerHTML = `<span class="saldo ${t.cls}">${fmt(t.saldo)}</span>`;
               row.querySelector('[data-role="status"]').innerHTML = `<span class="status ${t.cls}">${t.status}</span>`;
             });
+            // buildMonths() removed to preserve focus while typing
+            setMonthPreview();
+            queueSave(1200);
+          });
+          // keydown handled globally (ENTER / Shift+ENTER)
+          input.addEventListener('blur', ()=>{
+            if(!canEditEmployee(emp)){ input.value = arr[d-1] ?? ""; paintDayInput(input); return; }
+            const v = normalizeCellValue(input.value);
+            input.value = v;
+            paintDayInput(input);
+            arr[d-1] = v;
+            // buildMonths() removed to preserve focus while typing
             setMonthPreview();
             saveRemote(false).catch(()=>{});
             if (pendingRemote && !isEditingCell()) {
@@ -3199,20 +2860,6 @@ function normalizeCellValue(val){
     els.tableWrap.appendChild(host);
   }
 
-  const SUMMARY_FUTURE_YEARS_KEY = 'summary_show_future_years_v1';
-  function isShowingFutureYears(){
-    try{ return localStorage.getItem(SUMMARY_FUTURE_YEARS_KEY)==='1'; }catch(_){ return false; }
-  }
-  function setShowingFutureYears(v){
-    try{ localStorage.setItem(SUMMARY_FUTURE_YEARS_KEY, v ? '1' : '0'); }catch(_){ }
-  }
-  function getVisibleSummaryYears(){
-    if(isShowingFutureYears()) return YEARS.slice();
-    const nowYear = new Date().getFullYear();
-    const vis = YEARS.filter(y=>y<=nowYear);
-    return vis.length ? vis : [YEARS[0]];
-  }
-
   async function buildPeriodSummaryData(){
     const results = {};
     YEARS.forEach(y=>{
@@ -3258,12 +2905,11 @@ function normalizeCellValue(val){
   }
 
   async function renderPeriodSummary(){
-    const visibleYears = getVisibleSummaryYears();
-    els.mainTitle.textContent = `Podsumowanie całego okresu ${visibleYears[0]}–${visibleYears[visibleYears.length-1]}`;
+    els.mainTitle.textContent = `Podsumowanie całego okresu ${YEARS[0]}–${YEARS[YEARS.length-1]}`;
     setMonthPreview();
     const loading = document.createElement('div');
     loading.className='monthblock';
-    loading.innerHTML = `<div class="blockhead"><div><b>Podsumowanie całego okresu</b></div><div>ładowanie danych…</div></div><div style="padding:16px;color:var(--muted)">Pobieram salda dla wszystkich lat ${visibleYears[0]}–${visibleYears[visibleYears.length-1]}.</div>`;
+    loading.innerHTML = `<div class="blockhead"><div><b>Podsumowanie całego okresu</b></div><div>ładowanie danych…</div></div><div style="padding:16px;color:var(--muted)">Pobieram salda dla wszystkich lat ${YEARS[0]}–${YEARS[YEARS.length-1]}.</div>`;
     els.tableWrap.innerHTML='';
     els.tableWrap.appendChild(loading);
 
@@ -3273,38 +2919,23 @@ function normalizeCellValue(val){
     mb.className='monthblock';
     const bh = document.createElement('div');
     bh.className='blockhead';
-    const right = document.createElement('div');
-    right.style.display='flex';
-    right.style.alignItems='center';
-    right.style.gap='10px';
-    const meta = document.createElement('div');
-    meta.textContent = `saldo z lat ${visibleYears[0]}–${visibleYears[visibleYears.length-1]}`;
-    const toggle = document.createElement('button');
-    toggle.type='button';
-    toggle.className='summary-toggle-btn';
-    toggle.textContent = isShowingFutureYears() ? 'Ukryj przyszłe lata' : 'Pokaż przyszłe lata';
-    toggle.addEventListener('click', ()=>{ setShowingFutureYears(!isShowingFutureYears()); render(); });
-    bh.innerHTML = `<div><b>Podsumowanie całego okresu</b> • tylko odczyt</div>`;
-    right.appendChild(meta);
-    right.appendChild(toggle);
-    bh.appendChild(right);
+    bh.innerHTML = `<div><b>Podsumowanie całego okresu</b> • tylko odczyt</div><div>saldo z lat ${YEARS[0]}–${YEARS[YEARS.length-1]}</div>`;
     mb.appendChild(bh);
 
-    const wrap=document.createElement('div');
-    wrap.className='year-summary-wrap';
     const table=document.createElement('table');
     table.className='year-summary-table';
     const cg=document.createElement('colgroup');
     const nameCol=document.createElement('col');
-    nameCol.style.width='180px';
+    nameCol.style.width='170px';
     cg.appendChild(nameCol);
-    visibleYears.forEach(()=>{ const c=document.createElement('col'); c.style.width = `92px`; cg.appendChild(c); });
-    const totalCol=document.createElement('col'); totalCol.style.width='108px'; cg.appendChild(totalCol);
-    const statusCol=document.createElement('col'); statusCol.style.width='96px'; cg.appendChild(statusCol);
+    const yearColWidth = Math.max(72, Math.floor((window.innerWidth - 420) / YEARS.length));
+    YEARS.forEach(()=>{ const c=document.createElement('col'); c.style.width = `${yearColWidth}px`; cg.appendChild(c); });
+    const totalCol=document.createElement('col'); totalCol.style.width='120px'; cg.appendChild(totalCol);
+    const statusCol=document.createElement('col'); statusCol.style.width='110px'; cg.appendChild(statusCol);
     table.appendChild(cg);
     const thead=document.createElement('thead');
     const tr1=document.createElement('tr');
-    ['Imię i nazwisko', ...visibleYears.map(String), 'Saldo (całość)', 'Status'].forEach((t,idx)=>{
+    ['Imię i nazwisko', ...YEARS.map(String), 'Saldo (całość)', 'Status'].forEach((t,idx)=>{
       const th=document.createElement('th');
       th.textContent=t;
       if(idx>0) th.className='sumc';
@@ -3318,7 +2949,7 @@ function normalizeCellValue(val){
       let total = 0;
       const tr=document.createElement('tr');
       const tdN=document.createElement('td'); tdN.className='name'; tdN.innerHTML=`<b>${emp}</b>`; tr.appendChild(tdN);
-      visibleYears.forEach(y=>{
+      YEARS.forEach(y=>{
         const val = Number((data[y] && data[y][emp]) || 0);
         total += val;
         const td=document.createElement('td'); td.className='sum';
@@ -3333,8 +2964,7 @@ function normalizeCellValue(val){
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
-    wrap.appendChild(table);
-    mb.appendChild(wrap);
+    mb.appendChild(table);
 
     els.tableWrap.innerHTML='';
     els.tableWrap.appendChild(mb);
@@ -3483,37 +3113,30 @@ function normalizeCellValue(val){
             input.title = selectedEmployee ? 'Możesz wpisywać tylko w wybranym wierszu pracownika.' : 'Najpierw wybierz pracownika z listy u góry.';
           }
           input.value = arr[d-1] ?? "";
-          input.dataset.committed = arr[d-1] ?? "";
           input.disabled = (d>dim) || isMonthLocked(m) || !canEditEmployee(emp);
           paintDayInput(input);
 
           input.addEventListener('input', ()=>{
-            if(!canEditEmployee(emp)){ input.value = input.dataset.committed ?? (arr[d-1] ?? ""); return; }
-            input.value = String(input.value || '').toUpperCase();
+            if(!canEditEmployee(emp)){ input.value = arr[d-1] ?? ""; return; }
+            arr[d-1] = String(input.value || '').trim().toUpperCase();
             paintDayInput(input);
-          });
-          // keydown handled globally (ENTER / Shift+ENTER)
-          input.addEventListener('blur', ()=>{
-            const committed = input.dataset.committed ?? (arr[d-1] ?? "");
-            if(!canEditEmployee(emp)){ input.value = committed; paintDayInput(input); return; }
-            const v = normalizeCellValue(input.value);
-            const blockedMsg = getRestrictedCodeMessage(getCodeFromCellValue(v), currentYear, m, d);
-            if(blockedMsg){
-              showToast(blockedMsg, false);
-              input.value = committed;
-              arr[d-1] = committed;
-              paintDayInput(input);
-              return;
-            }
-            input.value = v;
-            paintDayInput(input);
-            arr[d-1] = v;
-            input.dataset.committed = v;
             const t = calcMonthTotalsForEmp(m, emp);
             document.querySelectorAll(`tr[data-emp="${cssEscape(emp)}"][data-month="${m}"]`).forEach(row=>{
               row.querySelector('[data-role="saldo"]').innerHTML = `<span class="saldo ${t.cls}">${fmt(t.saldo)}</span>`;
               row.querySelector('[data-role="status"]').innerHTML = `<span class="status ${t.cls}">${t.status}</span>`;
             });
+            // buildMonths() removed to preserve focus while typing
+            setMonthPreview();
+            queueSave(1200);
+          });
+          // keydown handled globally (ENTER / Shift+ENTER)
+          input.addEventListener('blur', ()=>{
+            if(!canEditEmployee(emp)){ input.value = arr[d-1] ?? ""; paintDayInput(input); return; }
+            const v = normalizeCellValue(input.value);
+            input.value = v;
+            paintDayInput(input);
+            arr[d-1] = v;
+            // buildMonths() removed to preserve focus while typing
             setMonthPreview();
             saveRemote(false).catch(()=>{});
             if (pendingRemote && !isEditingCell()) {
@@ -3734,206 +3357,10 @@ function normalizeCellValue(val){
     els.tableWrap.appendChild(host);
   }
 
-
-  function getRenderedMonthBlocks(m, dim, useSingle){
-    return useSingle
-      ? [{label:`Dni 1–${dim}`, start:1, end:dim}]
-      : [
-          {label:`Dni 1–16`, start:1, end:16},
-          {label:`Dni 17–31`, start:17, end:31},
-        ];
-  }
-
-  function createMonthBlock(block, m, dim, locked, useSingle){
-    const mb = document.createElement('div');
-    mb.className = 'monthblock' + (useSingle ? ' monthblock-single' : '');
-
-    const bh = document.createElement('div');
-    bh.className = 'blockhead';
-    const modeLabel = useSingle ? ' • <span style="color:#9dc3ff">widok całego miesiąca</span>' : '';
-    bh.innerHTML = `<div><b>${block.label}</b>${modeLabel} • wpisuj: <b>10</b>, <b>-2</b>, <b>0,5</b>, <b>U</b>, <b>O</b>, <b>L4</b>, <b>UT</b>, <b>T</b>, <b>Z</b>` + (locked ? ` • <span style="color:#ffb4b4">MIESIĄC ZAMKNIĘTY 🔒</span>` : ``) + `</div><div>zapis do chmury po wyjściu z pola</div>`;
-    mb.appendChild(bh);
-
-    const table = document.createElement('table');
-    if(useSingle) table.classList.add('month-single-table');
-    const thead = document.createElement('thead');
-    const tr1 = document.createElement('tr');
-
-    const thName = document.createElement('th');
-    thName.textContent = 'Imię i nazwisko';
-    tr1.appendChild(thName);
-
-    for(let d=block.start; d<=block.end; d++){
-      const th = document.createElement('th');
-      th.textContent = d;
-      if (d<=dim){
-        const hn = (state.settings && state.settings.holidaysEnabled) ? holidayName(currentYear,m,d) : '';
-        if (hn) { th.classList.add('is-holiday-head'); th.title = hn; }
-        else if (isWeekend(currentYear,m,d)) { th.classList.add('is-weekend-head'); }
-      }
-      tr1.appendChild(th);
-    }
-    ['Saldo','Status'].forEach(t=>{
-      const th=document.createElement('th');
-      th.textContent=t;
-      if(useSingle) th.classList.add('tail-col');
-      tr1.appendChild(th);
-    });
-    thead.appendChild(tr1);
-
-    const tr2 = document.createElement('tr');
-    tr2.appendChild(document.createElement('th'));
-    for(let d=block.start; d<=block.end; d++){
-      const th=document.createElement('th');
-      th.textContent = (d<=dim) ? weekdayPL(currentYear,m,d) : '—';
-      if (d<=dim){
-        const hn = (state.settings && state.settings.holidaysEnabled) ? holidayName(currentYear,m,d) : '';
-        if (hn) { th.classList.add('is-holiday-head'); th.title = hn; }
-        else if (isWeekend(currentYear,m,d)) { th.classList.add('is-weekend-head'); }
-      }
-      tr2.appendChild(th);
-    }
-    const thSaldoSpacer = document.createElement('th');
-    const thStatusSpacer = document.createElement('th');
-    if(useSingle){
-      thSaldoSpacer.classList.add('tail-col');
-      thStatusSpacer.classList.add('tail-col');
-    }
-    tr2.appendChild(thSaldoSpacer);
-    tr2.appendChild(thStatusSpacer);
-    thead.appendChild(tr2);
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-    for(const emp of getVisibleEmployeesForTable()){
-      const tr=document.createElement('tr');
-      tr.setAttribute('data-emp', emp);
-      tr.setAttribute('data-month', String(m));
-      if(selectedEmployee && selectedEmployee === emp) tr.classList.add('row-selected-employee');
-
-      const tdName=document.createElement('td');
-      tdName.className='name';
-      tdName.innerHTML=`<b>${emp}</b>`;
-      tr.appendChild(tdName);
-
-      if (!state.months[m]) state.months[m] = {};
-      if (!state.months[m][emp]) state.months[m][emp] = Array(31).fill('');
-      const arr = state.months[m][emp];
-
-      for(let d=block.start; d<=block.end; d++){
-        const td=document.createElement('td');
-        td.className='daycell';
-        if (d<=dim){
-          const hn = (state.settings && state.settings.holidaysEnabled) ? holidayName(currentYear,m,d) : '';
-          if (hn) { td.classList.add('is-holiday'); }
-          else if (isWeekend(currentYear,m,d)) { td.classList.add('is-weekend'); }
-        }
-
-        const input=document.createElement('input');
-        input.className='in';
-        input.inputMode='text';
-        input.autocapitalize='characters';
-        input.autocomplete='off';
-        input.spellcheck=false;
-        input.maxLength = 6;
-        input.dataset.emp = emp;
-        input.dataset.month = String(m);
-        input.dataset.day = String(d);
-        if (d<=dim && state.settings && state.settings.holidaysEnabled){
-          const hn = holidayName(currentYear,m,d);
-          if (hn) input.title = hn;
-        }
-        if(!canEditEmployee(emp) && d<=dim && !isMonthLocked(m)){
-          input.title = selectedEmployee ? 'Możesz wpisywać tylko w wybranym wierszu pracownika.' : 'Najpierw wybierz pracownika z listy u góry.';
-        }
-        input.value = arr[d-1] ?? '';
-        input.dataset.committed = arr[d-1] ?? '';
-        input.disabled = (d>dim) || isMonthLocked(m) || !canEditEmployee(emp);
-        paintDayInput(input);
-
-        input.addEventListener('input', ()=>{
-          if(!canEditEmployee(emp)){ input.value = input.dataset.committed ?? (arr[d-1] ?? ''); return; }
-          input.value = String(input.value || '').toUpperCase();
-          paintDayInput(input);
-        });
-        input.addEventListener('blur', ()=>{
-          const committed = input.dataset.committed ?? (arr[d-1] ?? '');
-          if(!canEditEmployee(emp)){ input.value = committed; paintDayInput(input); return; }
-          const v = normalizeCellValue(input.value);
-          const blockedMsg = getRestrictedCodeMessage(getCodeFromCellValue(v), currentYear, m, d);
-          if(blockedMsg){
-            showToast(blockedMsg, false);
-            input.value = committed;
-            arr[d-1] = committed;
-            paintDayInput(input);
-            return;
-          }
-          input.value = v;
-          paintDayInput(input);
-          arr[d-1] = v;
-          input.dataset.committed = v;
-          const t = calcMonthTotalsForEmp(m, emp);
-          document.querySelectorAll(`tr[data-emp="${cssEscape(emp)}"][data-month="${m}"]`).forEach(row=>{
-            row.querySelector('[data-role="saldo"]').innerHTML = `<span class="saldo ${t.cls}">${fmt(t.saldo)}</span>`;
-            row.querySelector('[data-role="status"]').innerHTML = `<span class="status ${t.cls}">${t.status}</span>`;
-          });
-          setMonthPreview();
-          saveRemote(false).catch(()=>{});
-          if (pendingRemote && !isEditingCell()) {
-            const pr = pendingRemote; pendingRemote = null;
-            applyRemoteData(pr, true);
-          }
-        });
-
-        td.appendChild(input);
-        tr.appendChild(td);
-      }
-
-      const t = calcMonthTotalsForEmp(m, emp);
-      const tdSaldo=document.createElement('td');
-      tdSaldo.className='sum' + (useSingle ? ' tail-col' : '');
-      tdSaldo.dataset.role='saldo';
-      tdSaldo.innerHTML=`<span class="saldo ${t.cls}">${fmt(t.saldo)}</span>`;
-      tr.appendChild(tdSaldo);
-      const tdStatus=document.createElement('td');
-      tdStatus.className='sum' + (useSingle ? ' tail-col' : '');
-      tdStatus.dataset.role='status';
-      tdStatus.innerHTML=`<span class="status ${t.cls}">${t.status}</span>`;
-      tr.appendChild(tdStatus);
-
-      tbody.appendChild(tr);
-    }
-
-    table.appendChild(tbody);
-    mb.appendChild(table);
-    return mb;
-  }
-
-  function renderMonth(){
-    const m = currentMonth;
-    const dim = daysInMonth(currentYear,m);
-    const locked = isMonthLocked(m);
-    const useSingle = isSingleMonthTableView();
-    setMonthPreview(locked);
-
-    const host = document.createElement('div');
-    host.className = useSingle ? 'month-host month-host-single' : 'month-host';
-    const blocks = getRenderedMonthBlocks(m, dim, useSingle);
-    for(const block of blocks){
-      host.appendChild(createMonthBlock(block, m, dim, locked, useSingle));
-    }
-
-    els.tableWrap.innerHTML = '';
-    els.tableWrap.appendChild(host);
-    applyRequestedFocus();
-  }
-
   function render(){
     applyCodeColors();
     populateYearSelectors();
     populateEmployeeSelector();
-    populateVisibleEmployeesFilter();
-    if(els.tableWrap) els.tableWrap.classList.toggle('single-table-mode', currentView==="month" && isSingleMonthTableView());
     buildMonths();
     if(currentView==="month") renderMonth();
     else if(currentView==="summary_absences") renderAbsenceSummary();
@@ -3970,28 +3397,8 @@ function normalizeCellValue(val){
     selectedEmployee = String(e.target.value || '');
     if(selectedEmployee) localStorage.setItem('nadgodziny_selected_employee', selectedEmployee);
     else localStorage.removeItem('nadgodziny_selected_employee');
-    updateVisibleEmployeesLabel();
     render();
   });
-  if(els.visibleEmployeesList){
-    els.visibleEmployeesList.addEventListener('change', (e)=>{
-      const t = e.target;
-      if(!(t && t.matches && t.matches('input[data-visible-emp]'))) return;
-      const emp = String(t.getAttribute('data-visible-emp') || '');
-      const current = new Set((visibleEmployeesMode === 'all') ? employees : visibleEmployees);
-      if(t.checked) current.add(emp); else current.delete(emp);
-      const next = employees.filter(name=>current.has(name));
-      visibleEmployees = next;
-      visibleEmployeesMode = (next.length === employees.length) ? 'all' : 'custom';
-      sanitizeVisibleEmployees();
-      updateVisibleEmployeesLabel();
-      populateVisibleEmployeesFilter();
-      render();
-    });
-  }
-  if(els.visibleEmployeesAllBtn) els.visibleEmployeesAllBtn.addEventListener('click', ()=> setVisibleEmployees(employees.slice(), 'all'));
-  if(els.visibleEmployeesClearBtn) els.visibleEmployeesClearBtn.addEventListener('click', ()=> setVisibleEmployees([], 'custom'));
-  if(els.visibleEmployeesCloseBtn) els.visibleEmployeesCloseBtn.addEventListener('click', (e)=>{ e.preventDefault(); if(els.visibleEmployeesBox) els.visibleEmployeesBox.open = false; });
   if(els.adminLockYearSel) els.adminLockYearSel.addEventListener('change', (e)=> loadAdminLockYearSettings(e.target.value));
   if(els.adminYearLockChk) els.adminYearLockChk.addEventListener('change', async ()=>{
     if(!isAdmin()) return;
@@ -4021,7 +3428,28 @@ function normalizeCellValue(val){
 
   els.saveBtn.addEventListener('click', ()=>{ saveRemote(true).catch(()=>{}); });
 
-  // resetBtn usunięty z paska głównego
+  els.resetBtn.addEventListener('click', async ()=>{
+    if(!isAdmin()){
+      openAdminModal();
+      showAdminMsg("Najpierw zaloguj się jako admin.", false);
+      return;
+    }
+    const phrase = "potwierdzamreset";
+const typed = prompt(`Aby potwierdzić reset, wpisz dokładnie: ${phrase}`);
+if(typed !== phrase){
+  alert("Reset anulowany.");
+  return;
+}
+{
+      state = defaultState();
+      employees = state.employees.slice();
+      render();
+      try {
+        await saveRemote(false);
+        alert("Wyczyszczono dane w chmurze ✅");
+      } catch(e) {}
+    }
+  });
 
   populateYearSelectors();
 
