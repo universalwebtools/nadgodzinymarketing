@@ -28,4 +28,12 @@ window.FIREBASE_CONFIG = {
     chartScript.dataset.nadgodzinyPollCharts = '1';
     document.head.appendChild(chartScript);
   }
+
+  if (!document.querySelector('script[data-nadgodziny-poll-safe-nick]')) {
+    const safeNickScript = document.createElement('script');
+    safeNickScript.src = './ankiety_bezpieczna_ksywka.js?v=20261001-1';
+    safeNickScript.async = true;
+    safeNickScript.dataset.nadgodzinyPollSafeNick = '1';
+    document.head.appendChild(safeNickScript);
+  }
 })();
