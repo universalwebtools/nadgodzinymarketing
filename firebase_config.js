@@ -31,7 +31,7 @@ window.FIREBASE_CONFIG = {
 
   if (!document.querySelector('script[data-nadgodziny-poll-safe-nick]')) {
     const safeNickScript = document.createElement('script');
-    safeNickScript.src = './ankiety_bezpieczna_ksywka.js?v=20261001-1';
+    safeNickScript.src = './ankiety_bezpieczna_ksywka.js?v=20261001-2';
     safeNickScript.async = true;
     safeNickScript.dataset.nadgodzinyPollSafeNick = '1';
     document.head.appendChild(safeNickScript);
