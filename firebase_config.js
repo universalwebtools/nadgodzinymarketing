@@ -13,10 +13,19 @@ window.FIREBASE_CONFIG = {
 
 // Moduł ankiet działu. Jest ładowany osobno, żeby nie rozbudowywać jeszcze bardziej głównego index.html.
 (() => {
-  if (document.querySelector('script[data-nadgodziny-polls]')) return;
-  const script = document.createElement('script');
-  script.src = './ankiety.js?v=20261001-1';
-  script.async = true;
-  script.dataset.nadgodzinyPolls = '1';
-  document.head.appendChild(script);
+  if (!document.querySelector('script[data-nadgodziny-polls]')) {
+    const script = document.createElement('script');
+    script.src = './ankiety.js?v=20261001-1';
+    script.async = true;
+    script.dataset.nadgodzinyPolls = '1';
+    document.head.appendChild(script);
+  }
+
+  if (!document.querySelector('script[data-nadgodziny-poll-charts]')) {
+    const chartScript = document.createElement('script');
+    chartScript.src = './ankiety_wykres.js?v=20261001-1';
+    chartScript.async = true;
+    chartScript.dataset.nadgodzinyPollCharts = '1';
+    document.head.appendChild(chartScript);
+  }
 })();
