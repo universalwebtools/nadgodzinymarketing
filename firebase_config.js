@@ -44,4 +44,12 @@ window.FIREBASE_CONFIG = {
     dateFixScript.dataset.nadgodzinyPollDateFix = '1';
     document.head.appendChild(dateFixScript);
   }
+
+  if (!document.querySelector('script[data-nadgodziny-poll-sync]')) {
+    const syncScript = document.createElement('script');
+    syncScript.src = './ankiety_sync.js?v=20261001-1';
+    syncScript.async = true;
+    syncScript.dataset.nadgodzinyPollSync = '1';
+    document.head.appendChild(syncScript);
+  }
 })();
