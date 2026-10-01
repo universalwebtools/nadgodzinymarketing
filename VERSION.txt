@@ -1,0 +1,18 @@
+NADGODZINY MARKETING
+Wersja: V1.0 STABLE
+Data: 2026-10-01
+
+Stan bazowy:
+- ankiety działu
+- kolorowe wykresy wyników
+- układ ankiety bez scrollowania
+- przycisk zapisu po lewej
+- domyślnie „Wybierz swoją ksywkę”
+- blokada głosowania bez wybrania ksywki
+- komunikat przy próbie zaznaczenia terminu bez ksywki
+- poprawione terminy listopadowe: 6–7, 13–14, 20–21, 27–28 listopada
+
+Commit bazowy przed oznaczeniem wersji: bcec8632aefc11ee27f0201c59bd175f0339405b
+
+Zasada dalszych zmian:
+Każda większa aktualizacja otrzymuje kolejny numer wersji V1.1, V1.2, V1.3 itd., aby można było łatwo wrócić do wskazanej wersji.
