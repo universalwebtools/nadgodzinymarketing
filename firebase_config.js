@@ -23,7 +23,7 @@ window.FIREBASE_CONFIG = {
 
   if (!document.querySelector('script[data-nadgodziny-poll-charts]')) {
     const chartScript = document.createElement('script');
-    chartScript.src = './ankiety_wykres.js?v=20261001-2';
+    chartScript.src = './ankiety_wykres.js?v=20261001-3';
     chartScript.async = true;
     chartScript.dataset.nadgodzinyPollCharts = '1';
     document.head.appendChild(chartScript);
