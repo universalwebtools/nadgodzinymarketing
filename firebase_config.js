@@ -36,4 +36,12 @@ window.FIREBASE_CONFIG = {
     safeNickScript.dataset.nadgodzinyPollSafeNick = '1';
     document.head.appendChild(safeNickScript);
   }
+
+  if (!document.querySelector('script[data-nadgodziny-poll-date-fix]')) {
+    const dateFixScript = document.createElement('script');
+    dateFixScript.src = './ankiety_korekta_terminow.js?v=20261001-1';
+    dateFixScript.async = true;
+    dateFixScript.dataset.nadgodzinyPollDateFix = '1';
+    document.head.appendChild(dateFixScript);
+  }
 })();
