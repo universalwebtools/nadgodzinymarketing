@@ -10,3 +10,13 @@ window.FIREBASE_CONFIG = {
   appId: "1:319391686767:web:1f9cd1ba96ae520597ed9a"
   // measurementId: "G-TPK2ZHF12K" // opcjonalnie
 };
+
+// Moduł ankiet działu. Jest ładowany osobno, żeby nie rozbudowywać jeszcze bardziej głównego index.html.
+(() => {
+  if (document.querySelector('script[data-nadgodziny-polls]')) return;
+  const script = document.createElement('script');
+  script.src = './ankiety.js?v=20261001-1';
+  script.async = true;
+  script.dataset.nadgodzinyPolls = '1';
+  document.head.appendChild(script);
+})();
