@@ -1,4 +1,4 @@
-/* Ankiety — twarda synchronizacja z Firebase + weryfikacja zapisu */
+/* Ankiety — bezpieczna synchronizacja z Firebase + weryfikacja zapisu */
 (() => {
   'use strict';
 
@@ -11,6 +11,7 @@
   let lastServerReadAt = 0;
   let forceTimer = null;
   let lastSnapshot = {};
+  let readInProgress = false;
 
   function ensureStatusStyle(){
     if(document.getElementById('pollCloudStatusStyles')) return;
@@ -71,11 +72,6 @@
     return voters;
   }
 
-  function getCurrentPollFromSnapshot(){
-    if(lastSnapshot[DEFAULT_POLL_ID]) return lastSnapshot[DEFAULT_POLL_ID];
-    return Object.values(lastSnapshot || {})[0] || null;
-  }
-
   function renderSnapshotDirectly(data){
     const modal = document.getElementById('pollModal');
     if(!modal || modal.style.display === 'none') return;
@@ -100,22 +96,16 @@
         .map(v => String(v.name || '').trim())
         .filter(Boolean)
         .sort((a,b) => a.localeCompare(b,'pl'));
-      countEl.textContent = `${names.length} ${names.length === 1 ? 'osoba' : 'osób'}`;
-      votersEl.textContent = names.length ? names.join(', ') : 'Jeszcze nikt';
+      const countText = `${names.length} ${names.length === 1 ? 'osoba' : 'osób'}`;
+      const votersText = names.length ? names.join(', ') : 'Jeszcze nikt';
+      if(countEl.textContent !== countText) countEl.textContent = countText;
+      if(votersEl.textContent !== votersText) votersEl.textContent = votersText;
     });
-
-    const total = Object.values(votes).filter(v => v && v.name).length;
-    const activeList = modal.querySelector('.poll-list-btn.active .poll-list-meta');
-    if(activeList){
-      const badge = activeList.querySelector('.poll-badge');
-      activeList.innerHTML = `${total} głosujących • `;
-      if(badge) activeList.appendChild(badge);
-      else activeList.insertAdjacentHTML('beforeend','<span class="poll-badge">aktywna</span>');
-    }
   }
 
   async function forceServerRead(){
-    if(!db || !pollsRef) return;
+    if(!db || !pollsRef || readInProgress) return;
+    readInProgress = true;
     try{
       if(typeof db.goOnline === 'function') db.goOnline();
       setStatus('', 'Chmura ankiet: synchronizacja…');
@@ -125,10 +115,11 @@
       const voters = countAllVoters(lastSnapshot);
       renderSnapshotDirectly(lastSnapshot);
       setStatus('ok', `Chmura ankiet: połączono • ${voters} głosów na serwerze`);
-      window.dispatchEvent(new CustomEvent('nadgodziny:polls-server-sync', {detail:{polls:lastSnapshot,voters}}));
     }catch(e){
-      console.error('Ankiety: błąd wymuszonej synchronizacji', e);
+      console.error('Ankiety: błąd synchronizacji', e);
       setStatus('bad', 'Chmura ankiet: BRAK SYNCHRONIZACJI');
+    }finally{
+      readInProgress = false;
     }
   }
 
@@ -159,19 +150,15 @@
       await ref.set(payload);
       const confirmSnap = await ref.once('value');
       const confirmed = confirmSnap.val();
-      if(!confirmed || confirmed.name !== nickname){
-        throw new Error('Brak potwierdzenia danych z serwera');
-      }
+      if(!confirmed || confirmed.name !== nickname) throw new Error('Brak potwierdzenia danych z serwera');
 
-      // Druga kopia bezpieczeństwa głosów — niezależna od definicji ankiety.
       await db.ref(`nadgodziny/pollVotesBackup/${DEFAULT_POLL_ID}/${key}`).set(payload);
-
       setStatus('saved', `✓ ZAPISANO W CHMURZE: ${nickname}`);
-      setTimeout(forceServerRead,250);
+      setTimeout(forceServerRead,300);
     }catch(e){
       console.error('Ankiety: głos NIE został potwierdzony przez serwer', e);
       setStatus('bad', '✕ NIE ZAPISANO W CHMURZE — spróbuj ponownie');
-      alert('Nie udało się potwierdzić zapisu głosu w chmurze. Ten głos NIE jest jeszcze bezpiecznie zapisany. Spróbuj ponownie.');
+      alert('Nie udało się potwierdzić zapisu głosu w chmurze. Spróbuj ponownie.');
     }
   }
 
@@ -196,7 +183,7 @@
         const online = snap.val() === true;
         if(online){
           setStatus('ok','Chmura ankiet: połączono');
-          if(isPollModalOpen()) forceServerRead();
+          if(isPollModalOpen()) setTimeout(forceServerRead,120);
         }else{
           setStatus('bad','Chmura ankiet: brak połączenia');
         }
@@ -205,37 +192,28 @@
       firebase.auth().onAuthStateChanged(user => {
         if(user){
           if(typeof db.goOnline === 'function') db.goOnline();
-          setTimeout(forceServerRead,100);
-          setTimeout(forceServerRead,900);
+          setTimeout(forceServerRead,250);
         }
       });
 
       document.addEventListener('click', e => {
         if(e.target && e.target.closest && e.target.closest('#pollOpenBtn')){
-          setTimeout(forceServerRead,80);
-          setTimeout(forceServerRead,650);
+          setTimeout(() => {
+            ensureStatusEl();
+            forceServerRead();
+          },180);
         }
       }, true);
 
-      // Oryginalny moduł obsługuje kliknięcie i zapis. Po nim wykonujemy własny,
-      // serwerowo potwierdzony zapis oraz kopię bezpieczeństwa.
       document.addEventListener('click', e => {
         const btn = e.target && e.target.closest ? e.target.closest('#pollSaveVoteBtn') : null;
         if(!btn) return;
-        setTimeout(verifyAndMirrorVote,120);
+        setTimeout(verifyAndMirrorVote,180);
       }, false);
 
-      const obs = new MutationObserver(() => {
-        if(isPollModalOpen()){
-          ensureStatusEl();
-          if(lastSnapshot && Object.keys(lastSnapshot).length) renderSnapshotDirectly(lastSnapshot);
-        }
-      });
-      obs.observe(document.body,{childList:true,subtree:true});
-
       forceTimer = setInterval(() => {
-        if(isPollModalOpen() && Date.now() - lastServerReadAt > 4000) forceServerRead();
-      },4000);
+        if(isPollModalOpen() && Date.now() - lastServerReadAt > 10000) forceServerRead();
+      },10000);
     }catch(e){
       started = false;
       console.warn('Ankiety: synchronizacja jeszcze niegotowa', e);
