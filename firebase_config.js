@@ -47,7 +47,7 @@ window.FIREBASE_CONFIG = {
 
   if (!document.querySelector('script[data-nadgodziny-poll-sync]')) {
     const syncScript = document.createElement('script');
-    syncScript.src = './ankiety_sync.js?v=20261001-1';
+    syncScript.src = './ankiety_sync.js?v=20261001-2';
     syncScript.async = true;
     syncScript.dataset.nadgodzinyPollSync = '1';
     document.head.appendChild(syncScript);
