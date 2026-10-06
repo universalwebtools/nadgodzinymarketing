@@ -15,7 +15,7 @@ window.FIREBASE_CONFIG = {
 (() => {
   if (!document.querySelector('script[data-nadgodziny-polls]')) {
     const script = document.createElement('script');
-    script.src = './ankiety.js?v=20261001-1';
+    script.src = './ankiety.js?v=20261006-2';
     script.async = true;
     script.dataset.nadgodzinyPolls = '1';
     document.head.appendChild(script);
