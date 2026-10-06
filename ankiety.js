@@ -20,7 +20,8 @@
       opt_4: { label: '7–8 listopada', order: 4 },
       opt_5: { label: '14–15 listopada', order: 5 },
       opt_6: { label: '21–22 listopada', order: 6 },
-      opt_7: { label: '28–29 listopada', order: 7 }
+      opt_7: { label: '28–29 listopada', order: 7 },
+      opt_8: { label: '4–5 grudnia', order: 8 }
     },
     votes: {}
   };
@@ -439,6 +440,11 @@
     if (!pollsRef || !authUser) return;
     try {
       await pollsRef.child(DEFAULT_POLL_ID).transaction(current => current || DEFAULT_POLL);
+      // Bezpiecznie dodajemy nowy termin do już istniejącej ankiety.
+      // Modyfikujemy wyłącznie options/opt_8 — istniejące głosy i pozostałe opcje pozostają bez zmian.
+      await pollsRef.child(DEFAULT_POLL_ID).child('options').child('opt_8').transaction(current =>
+        current || { label: '4–5 grudnia', order: 8 }
+      );
     } catch (e) {
       console.warn('Ankieta: nie udało się utworzyć domyślnej ankiety', e);
     }
