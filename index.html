@@ -2080,6 +2080,7 @@ function normalizeCellValue(val){
           if (accountBtn) accountBtn.style.display = '';
           subscribeShared();
           subscribeRemote();
+          setTimeout(() => ensureDailyFirebaseBackup().catch(err => console.warn('Backup dzienny:', err)), 1800);
           showToast('połączono', true);
         } else {
           remoteReady = false;
@@ -2095,6 +2096,55 @@ function normalizeCellValue(val){
       showAuthMsg(`Błąd inicjalizacji Firebase: ${e.message || e}`, false);
       showToast('błąd Firebase', false);
     }
+  }
+
+  const AUTO_BACKUP_ROOT = 'nadgodzinyBackups';
+  const AUTO_BACKUP_RETENTION_DAYS = 14;
+
+  function backupDayKey(ts=Date.now()){
+    const d = new Date(ts);
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  async function ensureDailyFirebaseBackup(){
+    if(!db || !currentUser) return false;
+
+    const dayKey = backupDayKey();
+    const backupRef = db.ref(`${AUTO_BACKUP_ROOT}/${dayKey}`);
+    const exists = await backupRef.child('createdAt').once('value');
+    if(exists.exists()) return false;
+
+    // Kopiujemy tylko właściwe dane aplikacji. Backupy są w osobnym korzeniu,
+    // więc nigdy nie kopiują samych siebie.
+    const sourceSnap = await db.ref('nadgodziny').once('value');
+    const source = sourceSnap.val();
+    if(!source || typeof source !== 'object') throw new Error('Brak danych do wykonania backupu.');
+
+    await backupRef.transaction(current => {
+      if(current) return current;
+      return {
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        createdBy: currentUser.email || 'authenticated-user',
+        source: 'nadgodziny',
+        data: source
+      };
+    });
+
+    // Retencja: zostawiamy 14 najnowszych dziennych kopii.
+    const all = await db.ref(AUTO_BACKUP_ROOT).once('value');
+    const keys = Object.keys(all.val() || {}).sort();
+    const remove = keys.slice(0, Math.max(0, keys.length - AUTO_BACKUP_RETENTION_DAYS));
+    if(remove.length){
+      const updates = {};
+      remove.forEach(k => { updates[k] = null; });
+      await db.ref(AUTO_BACKUP_ROOT).update(updates);
+    }
+
+    console.info(`Automatyczny backup Firebase utworzony: ${dayKey}`);
+    return true;
   }
 
   function detachRemote(){
@@ -2176,6 +2226,92 @@ function normalizeCellValue(val){
     };
   }
 
+  function getMetaAt(metaRoot, m, emp, day){
+    const mm = metaRoot && (metaRoot[m] || metaRoot[String(m)]);
+    const ee = mm && mm[emp];
+    const raw = ee && (ee[day] || ee[String(day)]);
+    if(!raw || typeof raw !== 'object') return null;
+    return {
+      editedBy: String(raw.editedBy || raw.by || '').trim(),
+      editedAt: Number(raw.editedAt || raw.at || raw.timestamp || 0) || 0
+    };
+  }
+
+  function mergeStateForSafeSave(remoteRaw, localPayload){
+    const remote = (remoteRaw && typeof remoteRaw === 'object') ? JSON.parse(JSON.stringify(remoteRaw)) : {};
+    const local = (localPayload && typeof localPayload === 'object') ? localPayload : {};
+    const merged = remote;
+
+    merged.year = currentYear;
+    merged.employees = sortEmployees(Array.from(new Set([
+      ...(Array.isArray(remote.employees) ? anonymizeEmployeeList(remote.employees) : []),
+      ...(Array.isArray(local.employees) ? anonymizeEmployeeList(local.employees) : [])
+    ])));
+
+    merged.months = (merged.months && typeof merged.months === 'object') ? merged.months : {};
+    merged.cellMeta = (merged.cellMeta && typeof merged.cellMeta === 'object') ? merged.cellMeta : {};
+
+    for(let m=1; m<=12; m++){
+      if(!merged.months[m] || typeof merged.months[m] !== 'object') merged.months[m] = {};
+      if(!merged.cellMeta[m] || typeof merged.cellMeta[m] !== 'object') merged.cellMeta[m] = {};
+
+      const localMonth = (local.months && (local.months[m] || local.months[String(m)])) || {};
+      const remoteMonth = (remote.months && (remote.months[m] || remote.months[String(m)])) || {};
+      const emps = Array.from(new Set([
+        ...Object.keys(remoteMonth || {}),
+        ...Object.keys(localMonth || {}),
+        ...merged.employees
+      ]));
+
+      for(const emp of emps){
+        const rArr = Array.isArray(remoteMonth[emp]) ? remoteMonth[emp].slice(0,31) : [];
+        const lArr = Array.isArray(localMonth[emp]) ? localMonth[emp].slice(0,31) : [];
+        while(rArr.length < 31) rArr.push('');
+        while(lArr.length < 31) lArr.push('');
+
+        const outArr = rArr.slice();
+        const outMeta = (merged.cellMeta[m][emp] && typeof merged.cellMeta[m][emp] === 'object')
+          ? JSON.parse(JSON.stringify(merged.cellMeta[m][emp])) : {};
+
+        for(let i=0; i<31; i++){
+          const day = i + 1;
+          const rMeta = getMetaAt(remote.cellMeta, m, emp, day);
+          const lMeta = getMetaAt(local.cellMeta, m, emp, day);
+          const rAt = rMeta ? rMeta.editedAt : 0;
+          const lAt = lMeta ? lMeta.editedAt : 0;
+          const rVal = normalizeCellValue(rArr[i] ?? '');
+          const lVal = normalizeCellValue(lArr[i] ?? '');
+
+          if(lAt > rAt){
+            // Lokalna komórka jest nowsza — zapisujemy ją, również gdy jest celowo wyczyszczona.
+            outArr[i] = lVal;
+            outMeta[day] = { editedBy: lMeta.editedBy || '—', editedAt: lAt };
+          }else if(rAt > lAt){
+            // Firebase ma nowszą wersję — lokalny/stary klient NIE może jej nadpisać.
+            outArr[i] = rVal;
+            if(rMeta) outMeta[day] = { editedBy: rMeta.editedBy || '—', editedAt: rAt };
+          }else if(rVal){
+            // Brak metadanych lub remis — zachowujemy istniejącą niepustą wartość z serwera.
+            outArr[i] = rVal;
+          }else if(lVal){
+            // Migracja starszych danych bez metadanych: uzupełniamy tylko pustą komórkę.
+            outArr[i] = lVal;
+          }else{
+            outArr[i] = '';
+          }
+        }
+
+        merged.months[m][emp] = outArr;
+        if(Object.keys(outMeta).length) merged.cellMeta[m][emp] = outMeta;
+      }
+    }
+
+    // Ustawienia scalane, ale dane komórek nigdy nie są zastępowane całym lokalnym stanem.
+    merged.settings = Object.assign({}, remote.settings || {}, local.settings || {});
+    merged.updatedAt = Date.now();
+    return merged;
+  }
+
   function saveRemote(showAlert=false){
     if (backupPreview) {
       showToast('Tryb podglądu backupu — zapis do chmury jest zablokowany.', false);
@@ -2186,19 +2322,22 @@ function normalizeCellValue(val){
       showAuthMsg('Najpierw zaloguj się do Firebase.', false);
       return Promise.reject(new Error('Not authenticated'));
     }
+
     const payload = cloneForSave();
     state.updatedAt = payload.updatedAt;
     state.employees = employees.slice();
 
-    showToast('zapis…', true);
-    return dbRef.set(payload)
-      .then(() => {
-        if (showAlert) alert('Zapisano do chmury ✅');
-        showToast('zapisano', true);
+    showToast('bezpieczny zapis…', true);
+
+    return dbRef.transaction(current => mergeStateForSafeSave(current, payload), undefined, false)
+      .then((result) => {
+        if(!result.committed) throw new Error('Transakcja zapisu nie została zatwierdzona.');
+        if (showAlert) alert('Zapisano bezpiecznie do chmury ✅');
+        showToast('zapisano bezpiecznie', true);
       })
       .catch((err) => {
         console.error(err);
-        showToast('błąd zapisu', false);
+        showToast('błąd bezpiecznego zapisu', false);
         alert('Błąd zapisu do Firebase: ' + (err.message || err));
         throw err;
       });
