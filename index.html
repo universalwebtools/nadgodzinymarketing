@@ -857,7 +857,6 @@ tr.row-selected-employee .in:focus{
               <div class="admin-note" style="margin:0 0 12px 0">Możesz utworzyć backup, zaimportować plik JSON, podejrzeć starszą wersję danych, przywrócić ją do chmury albo usunąć z lokalnego archiwum tej przeglądarki.</div>
               <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px">
                 <button id="backupCreateBtn" type="button" class="btn-primary">Utwórz backup teraz</button>
-                <button id="backupRecover2026Btn" type="button" class="btn" style="border-color:rgba(255,179,71,.55);background:rgba(255,179,71,.12)">Odzyskaj 2026 z backupu</button>
                 <button id="backupImportBtn" type="button" class="btn">Importuj backup JSON</button>
                 <button id="backupExitPreviewBtn" type="button" class="btn" style="display:none">Wyjdź z podglądu backupu</button>
                 <input id="backupImportFile" type="file" accept="application/json,.json" style="display:none" />
@@ -4845,111 +4844,6 @@ function normalizeCellValue(val){
     if(downloadAlso) downloadBackupPayload(payload);
     return payload;
   }
-  async function recover2026FromLatestLocalBackup(){
-    const year = 2026;
-    if(!db || !currentUser) throw new Error('Najpierw zaloguj się do Firebase.');
-
-    const candidates = backupArchive
-      .filter(item => item && item.years && item.years[year])
-      .sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0));
-
-    if(!candidates.length){
-      throw new Error('Nie znaleziono lokalnego backupu zawierającego rok 2026 w tej przeglądarce. Użyj komputera, na którym utworzono backup, albo zaimportuj plik JSON.');
-    }
-
-    const source = candidates[0];
-    const sourceYear = JSON.parse(JSON.stringify(source.years[year] || {}));
-    const sourceLabel = source.label || new Date(source.createdAt||Date.now()).toLocaleString('pl-PL');
-
-    const confirmed = confirm(
-      'Odzyskać brakujące dane roku 2026 z backupu: "' + sourceLabel + '"?\n\n' +
-      'Operacja UZUPEŁNI WYŁĄCZNIE PUSTE KOMÓRKI. Istniejące wpisy w Firebase nie zostaną nadpisane.\n' +
-      'Przed odzyskiwaniem zostanie też utworzona lokalna kopia obecnego stanu 2026.'
-    );
-    if(!confirmed) throw new Error('Odzyskiwanie anulowane.');
-
-    const ref = db.ref(YEAR_DB_PATH(year));
-    const beforeSnap = await ref.once('value');
-    const beforeRaw = beforeSnap.val() || {};
-
-    const safety = {
-      id: `bkp_safety_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
-      label: 'Kopia bezpieczeństwa przed odzyskiwaniem 2026',
-      createdAt: Date.now(),
-      years: { [year]: sanitizeStateForBackup(beforeRaw) },
-      employees: Array.isArray(beforeRaw.employees) ? beforeRaw.employees.slice() : [],
-      meta: { app:'nadgodziny', version:1, years:[year], safety:true }
-    };
-    backupArchive = [safety, ...backupArchive].slice(0,20);
-    saveBackupArchive();
-
-    const hasValue = (v) => String(v == null ? '' : v).trim() !== '';
-    let previewRestored = 0;
-    for(let m=1;m<=12;m++){
-      const bMonth = (sourceYear.months && sourceYear.months[m]) || {};
-      const cMonth = (beforeRaw.months && beforeRaw.months[m]) || {};
-      for(const [emp,bArrRaw] of Object.entries(bMonth)){
-        const bArr = Array.isArray(bArrRaw) ? bArrRaw : [];
-        const cArr = Array.isArray(cMonth[emp]) ? cMonth[emp] : [];
-        for(let i=0;i<31;i++){
-          if(!hasValue(cArr[i]) && hasValue(bArr[i])) previewRestored++;
-        }
-      }
-    }
-
-    await ref.transaction(current => {
-      const cur = (current && typeof current === 'object') ? JSON.parse(JSON.stringify(current)) : {};
-      const merged = cur;
-      merged.year = year;
-      merged.employees = sortEmployees(Array.from(new Set([
-        ...(Array.isArray(cur.employees) ? cur.employees : []),
-        ...(Array.isArray(sourceYear.employees) ? sourceYear.employees : [])
-      ])));
-      merged.months = (merged.months && typeof merged.months === 'object') ? merged.months : {};
-      merged.cellMeta = (merged.cellMeta && typeof merged.cellMeta === 'object') ? merged.cellMeta : {};
-
-      for(let m=1;m<=12;m++){
-        const bMonth = (sourceYear.months && sourceYear.months[m]) || {};
-        const bMetaMonth = (sourceYear.cellMeta && sourceYear.cellMeta[m]) || {};
-        if(!merged.months[m] || typeof merged.months[m] !== 'object') merged.months[m] = {};
-        if(!merged.cellMeta[m] || typeof merged.cellMeta[m] !== 'object') merged.cellMeta[m] = {};
-
-        for(const [emp,bArrRaw] of Object.entries(bMonth)){
-          const bArr = Array.isArray(bArrRaw) ? bArrRaw : [];
-          const curArr = Array.isArray(merged.months[m][emp]) ? merged.months[m][emp].slice() : Array(31).fill('');
-          const bMetaEmp = (bMetaMonth && bMetaMonth[emp] && typeof bMetaMonth[emp] === 'object') ? bMetaMonth[emp] : {};
-          const curMetaEmp = (merged.cellMeta[m][emp] && typeof merged.cellMeta[m][emp] === 'object')
-            ? JSON.parse(JSON.stringify(merged.cellMeta[m][emp])) : {};
-
-          for(let i=0;i<31;i++){
-            if(!hasValue(curArr[i]) && hasValue(bArr[i])){
-              curArr[i] = bArr[i];
-              if(curMetaEmp[i] == null && bMetaEmp[i] != null){
-                curMetaEmp[i] = JSON.parse(JSON.stringify(bMetaEmp[i]));
-              }
-            }
-          }
-          merged.months[m][emp] = curArr;
-          merged.cellMeta[m][emp] = curMetaEmp;
-        }
-      }
-
-      if((!merged.settings || typeof merged.settings !== 'object') && sourceYear.settings){
-        merged.settings = JSON.parse(JSON.stringify(sourceYear.settings));
-      }
-      merged.updatedAt = Date.now();
-      return merged;
-    });
-
-    if(currentYear === year){
-      detachRemote();
-      dbRef = db.ref(YEAR_DB_PATH(year));
-      subscribeRemote();
-    }
-
-    alert('Odzyskiwanie 2026 zakończone ✅\nPrzywrócono do ' + previewRestored + ' pustych komórek z backupu "' + sourceLabel + '".\nIstniejące wpisy nie zostały nadpisane.');
-  }
-
   async function restoreBackupToFirebase(item){
     if(!item || !item.years) throw new Error('Backup jest nieprawidłowy.');
     if(!db || !currentUser) throw new Error('Najpierw zaloguj się do Firebase.');
@@ -5036,8 +4930,6 @@ function normalizeCellValue(val){
     });
   }
   if(els.backupCreateBtn) els.backupCreateBtn.addEventListener('click', async ()=>{ try{ setBackupStatus('Tworzę backup…', true); const payload = await createAndStoreBackup('Backup ręczny', true); setBackupStatus(`Utworzono backup: ${payload.label} ✅`, true); }catch(e){ console.error(e); setBackupStatus(e.message || 'Nie udało się utworzyć backupu.', false); } });
-  const backupRecover2026Btn = document.getElementById('backupRecover2026Btn');
-  if(backupRecover2026Btn) backupRecover2026Btn.addEventListener('click', async ()=>{ try{ setBackupStatus('Odzyskuję brakujące dane 2026…', true); await recover2026FromLatestLocalBackup(); setBackupStatus('Odzyskiwanie 2026 zakończone ✅', true); }catch(e){ console.error(e); setBackupStatus(e.message || 'Nie udało się odzyskać danych 2026.', false); } });
   if(els.backupImportBtn) els.backupImportBtn.addEventListener('click', ()=>{ if(els.backupImportFile) els.backupImportFile.click(); });
   if(els.backupImportFile) els.backupImportFile.addEventListener('change', async (e)=>{ const file = e.target.files && e.target.files[0]; if(!file) return; try{ const item = await importBackupFile(file); setBackupStatus(`Zaimportowano backup: ${item.label} ✅`, true); }catch(err){ console.error(err); setBackupStatus(err.message || 'Nie udało się zaimportować backupu.', false); } e.target.value=''; });
   if(els.backupExitPreviewBtn) els.backupExitPreviewBtn.addEventListener('click', ()=> exitBackupPreview());
