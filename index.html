@@ -2098,7 +2098,7 @@ function normalizeCellValue(val){
   }
 
   const AUTO_BACKUP_ROOT = 'nadgodzinyBackups';
-  const AUTO_BACKUP_RETENTION_DAYS = 14;
+  const AUTO_BACKUP_RETENTION_DAYS = 60;
 
   function backupDayKey(ts=Date.now()){
     const d = new Date(ts);
