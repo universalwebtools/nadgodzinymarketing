@@ -862,6 +862,14 @@ tr.row-selected-employee .in:focus{
                 <input id="backupImportFile" type="file" accept="application/json,.json" style="display:none" />
               </div>
               <div id="backupStatus" style="color:var(--muted); font-size:12px; margin-bottom:10px"></div>
+
+              <div style="margin:14px 0 8px 0;font-weight:800">Automatyczne backupy Firebase</div>
+              <div class="admin-note" style="margin:0 0 10px 0">
+                Tworzone raz dziennie przy pierwszym uruchomieniu aplikacji. Przechowywane jest maksymalnie 60 ostatnich kopii i są dostępne z każdego urządzenia.
+              </div>
+              <div id="cloudBackupList" style="display:grid; gap:10px; margin-bottom:16px"></div>
+
+              <div style="margin:14px 0 8px 0;font-weight:800">Backupy ręczne — ta przeglądarka</div>
               <div id="backupList" style="display:grid; gap:10px"></div>
 </div>
           </details>
@@ -2114,7 +2122,10 @@ function normalizeCellValue(val){
     const dayKey = backupDayKey();
     const backupRef = db.ref(`${AUTO_BACKUP_ROOT}/${dayKey}`);
     const exists = await backupRef.child('createdAt').once('value');
-    if(exists.exists()) return false;
+    if(exists.exists()){
+      try{ await loadCloudBackups(); }catch(_e){}
+      return false;
+    }
 
     // Kopiujemy tylko właściwe dane aplikacji. Backupy są w osobnym korzeniu,
     // więc nigdy nie kopiują samych siebie.
@@ -2132,7 +2143,7 @@ function normalizeCellValue(val){
       };
     });
 
-    // Retencja: zostawiamy 14 najnowszych dziennych kopii.
+    // Retencja: zostawiamy 60 najnowszych dziennych kopii.
     const all = await db.ref(AUTO_BACKUP_ROOT).once('value');
     const keys = Object.keys(all.val() || {}).sort();
     const remove = keys.slice(0, Math.max(0, keys.length - AUTO_BACKUP_RETENTION_DAYS));
@@ -2143,6 +2154,7 @@ function normalizeCellValue(val){
     }
 
     console.info(`Automatyczny backup Firebase utworzony: ${dayKey}`);
+    try{ await loadCloudBackups(); }catch(_e){}
     return true;
   }
 
@@ -4601,6 +4613,113 @@ function normalizeCellValue(val){
     if(els.exportRangeFrom && !els.exportRangeFrom.value) els.exportRangeFrom.value = `${YEARS[0]}-01-01`;
     if(els.exportRangeTo && !els.exportRangeTo.value) els.exportRangeTo.value = `${YEARS[YEARS.length-1]}-12-31`;
   }
+  let cloudBackupArchive = [];
+
+  function cloudBackupToLocalItem(key, raw){
+    const dataRoot = raw && raw.data && typeof raw.data === 'object' ? raw.data : {};
+    const years = {};
+    YEARS.forEach(y => {
+      const yr = dataRoot[y] || dataRoot[String(y)];
+      if(yr && yr.app) years[y] = sanitizeStateForBackup(yr.app);
+    });
+    return {
+      id: `cloud_${key}`,
+      cloudKey: key,
+      label: `Automatyczny backup ${key}`,
+      createdAt: Number(raw && raw.createdAt) || 0,
+      years,
+      employees: Array.from(new Set(Object.values(years).flatMap(s=>Array.isArray(s.employees)?s.employees:[]))).sort((a,b)=>String(a).localeCompare(String(b),'pl')),
+      meta: { app:'nadgodziny', version:1, years:Object.keys(years).map(Number), cloud:true },
+      rawData: dataRoot
+    };
+  }
+
+  function renderCloudBackupArchive(){
+    const host = document.getElementById('cloudBackupList');
+    if(!host) return;
+    const items = cloudBackupArchive.slice().sort((a,b)=>{
+      const ad = String(a.cloudKey||'');
+      const bd = String(b.cloudKey||'');
+      return bd.localeCompare(ad);
+    });
+    if(!items.length){
+      host.innerHTML = '<div style="padding:12px; border:1px dashed rgba(255,255,255,.14); border-radius:12px; color:var(--muted)">Brak automatycznych backupów Firebase. Dzisiejszy backup utworzy się przy pierwszym uruchomieniu aplikacji po zalogowaniu.</div>';
+      return;
+    }
+    host.innerHTML = items.map(item=>{
+      const years = Object.keys(item.years||{}).map(Number).sort((a,b)=>a-b);
+      const created = item.createdAt ? new Date(item.createdAt).toLocaleString('pl-PL') : item.cloudKey;
+      return `<div style="padding:12px; border:1px solid rgba(70,170,255,.28); border-radius:12px; background:rgba(70,170,255,.055)">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap">
+          <div>
+            <div style="font-weight:800">☁ Automatyczny backup — ${escapeHtml(item.cloudKey)}</div>
+            <div style="color:var(--muted); font-size:12px; margin-top:4px">Utworzono: ${escapeHtml(created)} • Lata: ${years.join(', ') || 'brak'}</div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <button type="button" class="btn" data-cloud-backup-action="preview" data-cloud-backup-id="${escapeHtml(item.id)}">Użyj / podgląd</button>
+            <button type="button" class="btn" data-cloud-backup-action="restore" data-cloud-backup-id="${escapeHtml(item.id)}">Przywróć</button>
+            <button type="button" class="btn" data-cloud-backup-action="download" data-cloud-backup-id="${escapeHtml(item.id)}">Pobierz</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function getCloudBackupById(id){
+    return cloudBackupArchive.find(x=>x && x.id===id) || null;
+  }
+
+  async function loadCloudBackups(){
+    const host = document.getElementById('cloudBackupList');
+    if(!db || !currentUser){
+      cloudBackupArchive = [];
+      if(host) host.innerHTML = '<div style="padding:12px; color:var(--muted)">Zaloguj się do Firebase, aby zobaczyć automatyczne backupy.</div>';
+      return;
+    }
+    if(host) host.innerHTML = '<div style="padding:12px; color:var(--muted)">Pobieram automatyczne backupy Firebase…</div>';
+    try{
+      const snap = await db.ref(AUTO_BACKUP_ROOT).once('value');
+      const raw = snap.val() || {};
+      cloudBackupArchive = Object.entries(raw).map(([key,val])=>cloudBackupToLocalItem(key,val)).filter(x=>Object.keys(x.years||{}).length);
+      renderCloudBackupArchive();
+    }catch(err){
+      console.error('Nie udało się pobrać backupów Firebase', err);
+      if(host) host.innerHTML = '<div style="padding:12px; border:1px solid rgba(255,80,80,.3); border-radius:12px; color:#ffb4b4">Nie udało się pobrać automatycznych backupów Firebase.</div>';
+    }
+  }
+
+  async function restoreCloudBackupToFirebase(item){
+    if(!item || !item.years) throw new Error('Backup Firebase jest nieprawidłowy.');
+    if(!db || !currentUser) throw new Error('Najpierw zaloguj się do Firebase.');
+    const typed = prompt('Aby przywrócić dane z automatycznego backupu ' + item.cloudKey + ', wpisz dokładnie: przywracambackup');
+    if(typed !== 'przywracambackup') throw new Error('Przywracanie anulowane.');
+
+    // Przed przywróceniem zachowaj aktualny stan jako dodatkową kopię awaryjną.
+    const safetyKey = `przed-przywroceniem-${backupDayKey()}-${Date.now()}`;
+    const currentSnap = await db.ref('nadgodziny').once('value');
+    const currentData = currentSnap.val();
+    if(currentData){
+      await db.ref(`${AUTO_BACKUP_ROOT}/${safetyKey}`).set({
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        createdBy: currentUser.email || 'authenticated-user',
+        source: 'nadgodziny-before-restore',
+        data: currentData
+      });
+    }
+
+    // Przywracamy tylko roczne dane aplikacji. Ankiety i ustawienia globalne pozostają nietknięte.
+    for(const [year,payload] of Object.entries(item.years)){
+      await db.ref(YEAR_DB_PATH(Number(year))).set(sanitizeStateForBackup(payload));
+    }
+
+    if(!backupPreview){
+      detachRemote();
+      dbRef = db.ref(YEAR_DB_PATH(currentYear));
+      subscribeRemote();
+    }
+    await loadCloudBackups();
+  }
+
   function loadBackupArchive(){
     try{
       const raw = localStorage.getItem(BACKUP_ARCHIVE_KEY);
@@ -4903,6 +5022,32 @@ function normalizeCellValue(val){
   populateExportSelectors();
   loadBackupArchive();
   updateBackupPreviewUI();
+  if(currentUser && db) loadCloudBackups().catch(()=>{});
+
+  const cloudBackupList = document.getElementById('cloudBackupList');
+  if(cloudBackupList){
+    cloudBackupList.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('[data-cloud-backup-action]');
+      if(!btn) return;
+      const action = btn.getAttribute('data-cloud-backup-action');
+      const id = btn.getAttribute('data-cloud-backup-id');
+      const item = getCloudBackupById(id);
+      if(!item) return;
+      try{
+        if(action==='preview'){
+          enterBackupPreview(item);
+        }else if(action==='download'){
+          downloadBackupPayload(item);
+        }else if(action==='restore'){
+          await restoreCloudBackupToFirebase(item);
+          setBackupStatus(`Przywrócono automatyczny backup ${item.cloudKey} do chmury ✅`, true);
+        }
+      }catch(err){
+        console.error(err);
+        setBackupStatus(err.message || 'Operacja na automatycznym backupie nie powiodła się.', false);
+      }
+    });
+  }
 
   if(els.backupList){
     els.backupList.addEventListener('click', async (e)=>{
